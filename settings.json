@@ -1,0 +1,514 @@
+
+{
+  "creator": "Rikishopreal",
+  "whatsapp": "https://wa.me/6285771555374",
+  "github": "https://rikishopreal.cintaibu.biz.id",
+  "youtube": "https://youtube.com/@rikishopreal",
+  "apititle": "Rikishopreal Api",
+  "pagetitle": "Rikishopreal Api",
+  "publicAddress": "rikishop.panelvripate.my.id", 
+  "apikey": [
+    "rikinew"
+  ], 
+  "endpoints": {
+  "openai": [
+    {
+      "name": "Deepseek",
+      "desc": "Deepseek ai",
+      "status": "Active",
+      "path": "/ai/deepseek?text=",
+      "dateAdded": "2025-10-21T01:00:00.000Z" 
+    },
+    {
+      "name": "Openai",
+      "desc": "Openai chat",
+      "status": "Active",
+      "path": "/ai/openai?text="
+    }
+  ],
+    "orderkuota": [
+    {
+      "name": "Create Payment",
+      "desc": "Create qris payment",
+      "status": "Active",
+      "path": "/orderkuota/createpayment?apikey=&amount=&codeqr="
+    },
+    {
+      "name": "Cek Status",
+      "desc": "Cek status payment",
+      "status": "Active",
+      "path": "/orderkuota/cekstatus?apikey=&merchant=&keyorkut="
+    }
+  ],
+      "games": [
+      {
+        "name": "Asah Otak",
+        "desc": "Kuis asah otak acak",
+        "status": "Active",
+        "path": "/games/asahotak"
+      },
+      {
+        "name": "Cak Lontong",
+        "desc": "Kuis Cak Lontong acak",
+        "status": "Active",
+        "path": "/games/caklontong"
+      },
+      {
+        "name": "Cerdas Cermat SD",
+        "desc": "Kuis cerdas cermat SD berdasarkan mapel",
+        "status": "Active",
+        "path": "/games/cc-sd?matapelajaran=&jumlahsoal="
+      },
+      {
+        "name": "Family 100",
+        "desc": "Kuis Family 100 (Family Feud)",
+        "status": "Active",
+        "path": "/games/family100"
+      },
+      {
+        "name": "Lengkapi Kalimat",
+        "desc": "Kuis melengkapi kalimat acak",
+        "status": "Active",
+        "path": "/games/lengkapikalimat"
+      },
+      {
+        "name": "Matematika",
+        "desc": "Soal matematika acak berdasarkan level",
+        "status": "Active",
+        "path": "/games/maths?level="
+      },
+      {
+        "name": "Susun Kata",
+        "desc": "Kuis susun kata acak",
+        "status": "Active",
+        "path": "/games/susunkata"
+      },
+      {
+        "name": "Tebak Bendera",
+        "desc": "Kuis tebak bendera negara acak",
+        "status": "Active",
+        "path": "/games/tebakbendera"
+      },
+      {
+        "name": "Tebak Gambar",
+        "desc": "Kuis tebak gambar acak",
+        "status": "Active",
+        "path": "/games/tebakgambar"
+      },
+      {
+         "name": "Tebak Game",
+         "desc": "Kuis tebak nama game acak",
+         "status": "Active",
+         "path": "/games/tebakgame"
+       },
+       {
+         "name": "Tebak Hewan",
+         "desc": "Kuis tebak hewan acak",
+         "status": "Active",
+         "path": "/games/tebakhewan"
+       },
+       {
+         "name": "Tebak JKT48",
+         "desc": "Kuis tebak member JKT48 acak",
+         "status": "Active",
+         "path": "/games/tebakjkt"
+       },
+       {
+         "name": "Tebak Kabupaten",
+         "desc": "Kuis tebak kabupaten di Indonesia",
+         "status": "Active",
+         "path": "/games/kabupaten"
+       },
+       {
+         "name": "Tebak Kalimat",
+         "desc": "Kuis tebak kalimat acak",
+         "status": "Active",
+         "path": "/games/tebakkalimat"
+       },
+       {
+         "name": "Tebak Karakter FF",
+         "desc": "Kuis tebak karakter Free Fire",
+         "status": "Active",
+         "path": "/games/karakter-freefire"
+       },
+       {
+         "name": "Tebak Kartun",
+         "desc": "Kuis tebak judul kartun",
+         "status": "Active",
+         "path": "/games/tebakkartun"
+       },
+       {
+         "name": "Tebak Kata",
+         "desc": "Kuis tebak kata acak",
+         "status": "Active",
+         "path": "/games/tebakkata"
+       },
+       {
+         "name": "Tebak Kimia",
+         "desc": "Kuis tebak kimia acak",
+         "status": "Active",
+         "path": "/games/tebakkimia"
+       },
+       {
+         "name": "Tebak Hero ML",
+         "desc": "Kuis tebak hero Mobile Legends",
+         "status": "Active",
+         "path": "/games/tebakheroml"
+       },
+       {
+        "name": "Tebak Lirik",
+        "desc": "Kuis tebak lirik lagu",
+        "status": "Active",
+        "path": "/games/tebaklirik"
+       },
+       {
+         "name": "Tebak Lagu",
+         "desc": "Kuis tebak judul lagu",
+         "status": "Active",
+         "path": "/games/tebaklagu"
+       },
+       {
+        "name": "Tebak Logo",
+        "desc": "Kuis tebak logo aplikasi/brand",
+        "status": "Active",
+        "path": "/games/tebaklogo"
+       },
+       {
+         "name": "Tebak Warna",
+         "desc": "Kuis tebak warna (buta warna)",
+         "status": "Active",
+         "path": "/games/tebakwarna"
+       },
+      {
+        "name": "Tebak Tebakan",
+        "desc": "Teka-teki atau tebak-tebakan acak",
+        "status": "Active",
+        "path": "/games/tebaktebakan"
+      },
+      {
+        "name": "Teka Teki",
+        "desc": "Teka teki acak",
+        "status": "Active",
+        "path": "/games/tekateki"
+      },
+      {
+         "name": "Tebak Surah",
+         "desc": "Kuis tebak surah dari ayat acak",
+         "status": "Active",
+         "path": "/games/surah"
+       },
+      {
+         "name": "Siapakah Aku",
+         "desc": "Kuis siapakah aku",
+         "status": "Active",
+         "path": "/games/siapakahaku"
+       }
+    ],
+    
+  "downloader": [
+  {
+      "name": "All-in-one Downloader",
+      "desc": "Downloader untuk berbagai platform (YouTube, TikTok, dll.)",
+      "status": "Active",
+      "path": "/download/alldl?url=https://www.instagram.com/reel/DP1B1NBj4J2/?igsh=MTFnM25pb2VvcGxpMw==",
+      "dateAdded": "2025-10-21T01:00:00.000Z" 
+    },
+    {
+      "name": "Tiktok",
+      "desc": "Downloader tiktok",
+      "status": "Active",
+      "path": "/download/tiktok?url=https://vm.tiktok.com/ZSHvSpGM9NEo3-wCI8j/"
+    },
+    {
+      "name": "Tiktok V2",
+      "desc": "Downloader tiktok v2",
+      "status": "Active",
+      "path": "/download/tiktok-v2?url=https://vm.tiktok.com/ZSHvSpGM9NEo3-wCI8j/"
+    },
+    {
+      "name": "Capcut",
+      "desc": "Downloader capcut",
+      "status": "Active",
+      "path": "/download/capcut?url=https://www.capcut.com/tv2/ZSUsRQqyX/"
+    },
+    {
+      "name": "Spotify",
+      "desc": "Downloader spotify",
+      "status": "Active",
+      "path": "/download/spotify?url=https://open.spotify.com/track/4iV5W9uYEdYUVa79Axb7Rh"
+    },
+    {
+      "name": "XNXX",
+      "desc": "Downloader xnxx",
+      "status": "Active",
+      "path": "/download/xnxx?url=https://www.xnxx.com/video-17pl6tbb/30_ol_"
+    },
+    {
+      "name": "Instagram",
+      "desc": "Downloader Instagram (Reels, Foto, Video)",
+      "status": "Active",
+      "path": "/download/instagram?url=https://www.instagram.com/reel/DP1B1NBj4J2/?igsh=MTFnM25pb2VvcGxpMw=="
+    },
+    {
+      "name": "Facebook",
+      "desc": "Downloader facebook",
+      "status": "Active",
+      "path": "/download/facebook?url=https://www.facebook.com/share/r/12BFZAtjpS8/?mibextid=qDwCgo"
+    },
+    {
+      "name": "Videy",
+      "desc": "Downloader videy",
+      "status": "Active",
+      "path": "/download/videy?url=https://videy.co/v/?id=evLr8LDF1"
+    },
+    {
+      "name": "Youtube Mp4",
+      "desc": "Downloader Youtube MP4 (Video)",
+      "status": "Active",
+      "path": "/download/ytmp4?url=https://youtu.be/O5k3RuqCWOk?si=QYFCqe8MB9ISZY-G"
+      },
+      {
+      "name": "Youtube Mp3",
+      "desc": "Downloader Youtube MP3 (Audio)",
+      "status": "Active",
+      "path": "/download/ytmp3?url=https://youtu.be/O5k3RuqCWOk?si=QYFCqe8MB9ISZY-G"
+     },
+    {
+      "name": "Snackvideo",
+      "desc": "Downloader snackvideo",
+      "status": "Active",
+      "path": "/download/snackvideo?url=https://s.snackvideo.com/p/dwlMd51U"
+    },
+    {
+        "name": "GitHub Download",
+        "desc": "Ambil data dari repo, file, atau Gist GitHub.",
+        "status": "Active",
+        "path": "/download/github?url=https://gist.github.com/siputzx/966268a3aa3c14695e80cc9f30da8e9f"
+      },
+    {
+      "name": "Mediafire",
+      "desc": "Downloader mediafire",
+      "status": "Active",
+      "path": "/download/mediafire?url=https://www.mediafire.com/file/iojnikfucf67q74/Base_Bot_Simpel.zip/file"
+    },
+    {
+      "name": "Play (Audio & Lirik)",
+      "desc": "Mencari lagu, link audio, dan lirik dari YouTube.",
+      "status": "Active",
+      "path": "/download/play?q=Diva Hani basah basah",
+       "dateAdded": "2025-10-21T01:00:00.000Z" 
+    }
+  ],
+  "random": [
+    {
+      "name": "Blue Archive",
+      "desc": "Random foto blue archive",
+      "status": "Active",
+      "path": "/random/ba?apikey="
+    },
+    {
+      "name": "Random Waifu",
+      "desc": "Random foto waifu",
+      "status": "Active",
+      "path": "/random/waifu?apikey="
+    },
+    {
+      "name": "Random Nsfw",
+      "desc": "Random foto nsfw",
+      "status": "Active",
+      "path": "/random/nsfw?apikey="
+    },
+    {
+      "name": "Pap Ayang",
+      "desc": "Random pap ayang",
+      "status": "Active",
+      "path": "/random/papayang"
+    }
+  ],
+  "search": [
+    {
+      "name": "Youtube Search",
+      "desc": "Search youtube video",
+      "status": "Active",
+      "path": "/search/youtube?q="
+    },
+    {
+      "name": "Tiktok Search",
+      "desc": "Search tiktok video",
+      "status": "Active",
+      "path": "/search/tiktok?q="
+    },
+    {
+      "name": "Npm Search",
+      "desc": "Search npm nodejs",
+      "status": "Active",
+      "path": "/search/npm?q="
+    },
+    {
+      "name": "Pinterest",
+      "desc": "Search pinterest foto",
+      "status": "Active",
+      "path": "/search/pinterest?q="
+    },
+    {
+      "name": "Playstore",
+      "desc": "Search playstore apk",
+      "status": "Active",
+      "path": "/search/playstore?q="
+    },
+    {
+      "name": "Happymod",
+      "desc": "Search happymod apk",
+      "status": "Active",
+      "path": "/search/happymod?q="
+    },
+    {
+      "name": "XNXX Search",
+      "desc": "Search xnxx video",
+      "status": "Active",
+      "path": "/search/xnxx?q="
+    }
+  ],
+  "tools": [
+    {
+      "name": "Text-to-speech",
+      "desc": "Tts anime character",
+      "status": "Active",
+      "path": "/tools/text-to-speech?text="
+    },
+    {
+      "name": "Screenshot Web",
+      "desc": "Screenshot web url",
+      "status": "Active",
+      "path": "/tools/ssweb?url="
+    },
+    {
+      "name": "Emoji To Gif",
+      "desc": "Convert emoji to gif",
+      "status": "Active",
+      "path": "/tools/emojitogif?emoji="
+    },
+    {
+      "name": "Emoji Mix",
+      "desc": "Emoji mix converter",
+      "status": "Active",
+      "path": "/tools/emojimix?emoji1=&emoji2="
+    },
+    {
+        "name": "NGL Sender",
+        "desc": "Kirim pesan NGL anonim",
+        "status": "Active",
+        "path": "/tools/ngl?link=&text="
+      },
+      {
+        "name": "Country Info",
+        "desc": "Cari info detail negara",
+        "status": "Active",
+        "path": "/tools/countryInfo?name="
+      },
+      {
+        "name": "Base64 to Text",
+        "desc": "Decode Base64 ke Teks",
+        "status": "Active",
+        "path": "/tools/base642text?base64="
+      },
+      {
+        "name": "List Voices",
+        "desc": "Daftar suara untuk TTS",
+        "status": "Active",
+        "path": "/tools/voices?apikey="
+      },
+      {
+        "name": "Binary to Text",
+        "desc": "Decode Binary ke Teks",
+        "status": "Active",
+        "path": "/tools/binary2text?content="
+      },
+      {
+        "name": "Fake Data Generator",
+        "desc": "Buat data palsu (person, product, dll)",
+        "status": "Active",
+        "path": "/tools/fake-data?type=&count="
+      },
+      {
+        "name": "Identify Anime",
+        "desc": "Cari anime berdasarkan gambar (via URL)",
+        "status": "Active",
+        "path": "/tools/identify-anime?imageUrl="
+      }
+  ],
+  "stalker": [
+    {
+      "name": "Instagram Stalk",
+      "desc": "Stalk instagram account",
+      "status": "Active",
+      "path": "/stalk/instagram?user="
+    },
+    {
+      "name": "Tiktok Stalk",
+      "desc": "Stalk tiktok account",
+      "status": "Active",
+      "path": "/stalk/tiktok?user="
+    },
+    {
+      "name": "Npm Stalk",
+      "desc": "Stalk npm package",
+      "status": "Active",
+      "path": "/stalk/npm?name="
+    },
+    {
+      "name": "FF Stalk",
+      "desc": "Stalk free fire account",
+      "status": "Active",
+      "path": "/stalk/ff?id="
+    }
+  ],
+  "creator": [
+    {
+      "name": "Remini",
+      "desc": "Remini image",
+      "status": "Active",
+      "path": "/imagecreator/remini?url="
+    },
+    {
+      "name": "Removebg",
+      "desc": "Remove background image",
+      "status": "Active",
+      "path": "/imagecreator/removebg?url="
+    },
+    {
+      "name": "Upscale",
+      "desc": "Upscale image",
+      "status": "Active",
+      "path": "/imagecreator/upscale?url="
+    },
+    {
+      "name": "Colorize",
+      "desc": "Colorize image",
+      "status": "Active",
+      "path": "/imagecreator/colorize?url="
+    },
+    {
+      "name": "Brat",
+      "desc": "Brat text generator",
+      "status": "Active",
+      "path": "/imagecreator/brat?text="
+    }
+  ],
+  
+  "api": [
+    {
+      "name": "Status Api",
+      "desc": "",
+      "status": "Active",
+      "path": "/api/status"
+    },
+    {
+        "name": "Blacklist Info",
+        "desc": "Melihat daftar IP yang diblokir (disamarkan)",
+        "status": "Active",
+        "path": "/api/blacklist-info"
+      }
+  ]
+}
+}

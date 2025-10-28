@@ -1,0 +1,668 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+    <link rel="icon" href="/icon.png" type="image/png">
+    <title id="page"></title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+
+    <style>
+        :root {
+            /* Variabel Warna (Light Mode) */
+            --primary: #6366f1; --primary-dark: #4f46e5; --primary-light: #818cf8; --secondary: #f472b6;
+            --dark: #f8fafc; --darker: #e2e8f0; --light: #0f172a; --gray: #475569;
+            --success: #10b981; --warning: #f59e0b; --danger: #ef4444; /* Warna notif error & blacklist */
+            --success-bg: #dcfce7; --warning-bg: #fef3c7; --danger-bg: #fee2e2; /* Background notif */
+            --success-text: #065f46; --warning-text: #92400e; --danger-text: #991b1b; /* Teks notif & blacklist */
+            --card-bg: rgba(255, 255, 255, 0.9);
+            --card-hover: #f8fafc; --border-color: #e2e8f0;
+            --input-bg: #ffffff; --input-border: #cbd5e1; --input-focus-bg: #ffffff; --input-focus-border: var(--primary); --input-focus-shadow: rgba(99, 102, 241, 0.2);
+            --pre-bg: #eef2f9;
+            --pre-border: #e2e8f0; --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            --header-height: 4rem;
+        }
+
+        body[data-theme="dark"] {
+            /* Variabel Warna (Dark Mode) */
+            --dark: #000000;
+            --darker: #000000;
+            --light: #f8fafc; --gray: #94a3b8;
+            --success: #10b981; --warning: #f59e0b; --danger: #ef4444;
+            --success-bg: #052e16; --warning-bg: #422006; --danger-bg: #450a0a;
+            --success-text: #6ee7b7; --warning-text: #fcd34d; --danger-text: #fca5a5;
+            --card-bg: rgba(255, 255, 255, 0.05);
+            --card-hover: rgba(255, 255, 255, 0.08);
+            --border-color: rgba(255, 255, 255, 0.1);
+            --input-bg: rgba(255, 255, 255, 0.05); --input-border: rgba(255, 255, 255, 0.2); --input-focus-bg: rgba(255, 255, 255, 0.1); --input-focus-border: var(--primary-light); --input-focus-shadow: rgba(99, 102, 241, 0.2);
+            --pre-bg: rgba(0, 0, 0, 0.3); --pre-border: rgba(255, 255, 255, 0.1);
+        }
+
+        html { scroll-behavior: smooth; }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
+            background-image: url('/images/background.jpg');
+            background-size: cover;
+            background-position: center center;
+            background-attachment: fixed;
+            background-repeat: no-repeat;
+            color: var(--light);
+            padding: calc(var(--header-height) + 1rem) 1rem 1rem 1rem;
+            min-height: 100vh;
+            -webkit-tap-highlight-color: transparent; line-height: 1.5;
+            transition: background 0.3s ease, color 0.3s ease;
+            position: relative;
+            z-index: 1;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0; left: 0;
+            width: 100vw; height: 100vh;
+            background-color: rgba(255, 255, 255, 0.7);
+            z-index: -1;
+            transition: background-color 0.3s ease;
+        }
+
+        body[data-theme="dark"] {
+            background-image: none;
+            background: linear-gradient(135deg, var(--darker), var(--dark));
+        }
+        body[data-theme="dark"]::before {
+            background-color: rgba(0, 0, 0, 0);
+        }
+
+        .d-none { display: none !important; }
+
+        /* --- Style Preloader --- */
+        #preloader { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: var(--dark); z-index: 9999; display: flex; align-items: center; justify-content: center; opacity: 1; transition: opacity 0.5s ease-out, visibility 0s 0.5s; visibility: visible; }
+        #preloader.hidden { opacity: 0; visibility: hidden; pointer-events: none; }
+        .loader-content { text-align: center; }
+        .pulsing-logo { width: 60px; height: 60px; animation: pulse 1.5s infinite ease-in-out; margin-bottom: 1rem; border-radius: 8px; }
+        .loader-content p { color: var(--primary); font-weight: 500; font-size: 1rem; animation: fadeInOut 1.5s infinite ease-in-out; }
+        @keyframes pulse { 0%, 100% { transform: scale(1); opacity: 0.8; } 50% { transform: scale(1.1); opacity: 1; } }
+        @keyframes fadeInOut { 0%, 100% { opacity: 0.5; } 50% { opacity: 1; } }
+
+        /* --- Style Teks Response API (JSON) --- */
+        pre, #apiResponseContent { white-space: pre-wrap; word-wrap: break-word; overflow-x: auto; background: var(--pre-bg); color: var(--light); padding: 1rem; border-radius: 8px; max-height: 400px; font-size: 0.875rem; font-family: 'Consolas', 'Menlo', 'Courier New', monospace; border: 1px solid var(--pre-border); box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); font-weight: 600; line-height: 1.6; }
+        .json-key { color: #c991e1; font-weight: 700; }
+        .json-string { color: #86c166; }
+        .json-number { color: #f59e0b; }
+        .json-boolean { color: #6366f1; font-weight: 700; }
+        .json-null { color: var(--gray); font-style: italic; }
+        /* Style tambahan untuk text merah di blacklist modal */
+        #apiResponseContent.blacklist-info { color: var(--danger-text); }
+        #apiResponseContent.blacklist-info hr { border-color: var(--border-color); margin: 0.5rem 0; }
+        #apiResponseContent.blacklist-info .user-ip-label { color: var(--light); font-weight: bold; }
+        #apiResponseContent.blacklist-info .user-ip-value { color: var(--primary-light); font-family: monospace; }
+        #apiResponseContent.blacklist-info .list-title { color: var(--light); font-weight: bold; }
+        #apiResponseContent.blacklist-info .empty-list { color: var(--gray); }
+
+
+        /* --- Style Modal Form Input --- */
+        .modal-body form label { display: block; font-weight: 500; margin-bottom: 6px; color: var(--gray); font-size: 0.9rem; }
+        .modal-body form input, .modal-body form textarea { width: 100%; padding: 12px 14px; border-radius: 8px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--light); margin-bottom: 1rem; font-size: 0.95rem; font-family: inherit; transition: var(--transition); }
+        .modal-body form textarea { min-height: 100px; resize: vertical; }
+        .modal-body form input::placeholder, .modal-body form textarea::placeholder { color: var(--gray); opacity: 0.7; }
+        .modal-body form input:focus, .modal-body form textarea:focus { outline: none; border-color: var(--input-focus-border); background: var(--input-focus-bg); box-shadow: 0 0 0 3px var(--input-focus-shadow); }
+        #submitParamBtn, #submitReportBtn { background: linear-gradient(135deg, var(--primary), var(--primary-dark)); color: white; border: none; padding: 12px 24px; font-size: 0.95rem; border-radius: 8px; font-family: inherit; cursor: pointer; font-weight: 500; transition: var(--transition); width: 100%; margin-top: 0.5rem; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); display: flex; align-items: center; justify-content: center; gap: 8px; }
+        #submitParamBtn:hover, #submitReportBtn:hover { background: linear-gradient(135deg, var(--primary-dark), var(--primary)); transform: translateY(-2px); box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15); }
+        #submitParamBtn:active, #submitReportBtn:active { transform: translateY(0); }
+        #submitReportBtn:disabled { background: var(--gray); cursor: not-allowed; opacity: 0.7; transform: none; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); }
+        .loading-spinner { margin: 1rem auto; border: 3px solid var(--card-bg); border-top: 3px solid var(--primary-light); border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* --- Style Modal Dasar --- */
+        .modal { position: fixed; top: 0; left: 0; z-index: 100; width: 100vw; height: 100vh; background: rgba(0, 0, 0, 0.7); display: flex; align-items: center; justify-content: center; padding: 1rem; opacity: 0; pointer-events: none; transition: opacity 0.3s ease; }
+        .modal.active { opacity: 1; pointer-events: all; }
+        .modal-dialog { width: 100%; max-width: 500px; background: var(--dark); border-radius: 12px; padding: 1.5rem; color: var(--light); overflow: auto; max-height: 90vh; transform: translateY(20px); transition: transform 0.3s ease, opacity 0.3s ease, background 0.3s ease; opacity: 0; box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3); border: 1px solid var(--border-color); }
+        .modal.active .modal-dialog { transform: translateY(0); opacity: 1; }
+        .modal-header { display: flex; justify-content: space-between; align-items: flex-start; padding-bottom: 1rem; border-bottom: 1px solid var(--border-color); margin-bottom: 1rem; transition: border-color 0.3s ease; }
+        .modal-header h5 { font-size: 1.25rem; font-weight: 600; color: var(--light); }
+        .modal-header span { font-size: 0.9rem; color: var(--gray); display: block; margin-top: 4px; font-weight: 400; }
+        .btn-close { background: none; border: none; font-size: 1.5rem; line-height: 1; cursor: pointer; color: var(--gray); transition: var(--transition); padding: 0.25rem; border-radius: 4px; }
+        .btn-close:hover { color: var(--light); background: var(--card-hover); }
+        .modal-body { padding: 0.5rem 0; }
+        .copy-section { display: none; justify-content: space-between; align-items: center; background-color: var(--pre-bg); border: 1px solid var(--border-color); padding: 10px 14px; border-radius: 8px; font-size: 0.85rem; margin-bottom: 1rem; overflow: auto; transition: var(--transition); }
+        .copy-section span { color: var(--gray); word-break: break-all; }
+        .copy-section.active { display: flex; animation: fadeIn 0.3s ease; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        .copy-button { background: linear-gradient(135deg, var(--primary), var(--primary-dark)); border: none; color: white; padding: 6px 12px; border-radius: 6px; font-size: 0.8rem; cursor: pointer; transition: var(--transition); display: flex; align-items: center; gap: 4px; font-weight: 500; font-family: inherit; white-space: nowrap; }
+        .copy-button:hover { background: linear-gradient(135deg, var(--primary-dark), var(--primary)); transform: translateY(-1px); }
+        .copy-button:active { transform: translateY(0); }
+        #copyResponseBtn { margin-bottom: 0.75rem; width: auto; padding: 6px 12px; font-size: 0.8rem; margin-left: auto; margin-right: 0; display: flex; }
+
+        .container { max-width: 1200px; margin: 0 auto; padding: 0; }
+
+        /* --- Hero Section --- */
+        .hero { text-align: center; margin: 1.5rem auto 2rem auto; max-width: 800px; padding: 0 1rem; }
+        .api-platform-badge { display: inline-flex; align-items: center; gap: 0.5rem; background-color: var(--card-bg); color: var(--primary); padding: 0.4rem 0.9rem; border-radius: 20px; font-size: 0.9rem; font-weight: 500; border: 1px solid var(--border-color); margin-bottom: 1rem; transition: var(--transition); cursor: pointer; }
+        .api-platform-badge:hover { background-color: var(--card-hover); box-shadow: 0 4px 8px rgba(0,0,0,0.1); transform: translateY(-2px); }
+        body[data-theme="dark"] .api-platform-badge { color: var(--primary-light); }
+        .hero-header { margin-bottom: 0.75rem; }
+        .hero h2 { font-size: 2.5rem; font-weight: 700; color: var(--primary); margin-bottom: 0.5rem; text-align: center; }
+        body[data-theme="dark"] .hero h2 { background: linear-gradient(90deg, #a5b4fc, #818cf8, #6366f1, #818cf8, #a5b4fc); background-size: 300% 300%; -webkit-background-clip: text; -webkit-text-fill-color: transparent; animation: gradient 8s ease infinite; }
+        @keyframes gradient { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
+        .hero p { font-size: 1.1rem; color: var(--gray); margin-bottom: 1.5rem; line-height: 1.6; text-align: center; max-width: 600px; margin-left: auto; margin-right: auto; }
+
+        .version-label {
+            font-size: 0.8rem; font-weight: 500; color: var(--primary); background-color: var(--card-bg);
+            padding: 3px 8px; border-radius: 6px; margin-left: 0.5rem; vertical-align: middle;
+            border: 1px solid var(--border-color); transition: var(--transition);
+        }
+        body[data-theme="dark"] .version-label { color: var(--primary-light); background-color: var(--card-bg); border-color: var(--border-color); }
+
+        /* --- Header Atas (Top Navbar) --- */
+        .top-navbar { position: fixed; top: 0; left: 0; width: 100%; height: var(--header-height); background: var(--darker); box-shadow: 0 2px 5px rgba(0,0,0,0.1); display: flex; align-items: center; justify-content: space-between; padding: 0 1.5rem; z-index: 50; transition: background 0.3s ease; }
+        .navbar-logo { display: flex; align-items: center; flex-shrink: 0; }
+        .navbar-logo img { height: 32px; width: 32px; border-radius: 4px; }
+        .navbar-scrolling-text-wrapper { flex-grow: 1; overflow: hidden; margin: 0 1.5rem; display: flex; align-items: center; }
+        .navbar-theme-switcher { flex-shrink: 0; }
+        .scrolling-text-container { width: 100%; overflow: hidden; white-space: nowrap; line-height: normal; background: transparent; }
+        .scrolling-text { display: inline-block; padding-left: 100%; animation: scroll-left 20s linear infinite, gradient-shift 10s ease infinite alternate; font-size: 1.1rem; font-weight: 500; background: linear-gradient(90deg, #ef4444, #f97316, #eab308, #84cc16, #22c55e, #14b8a6, #0ea5e9, #6366f1, #a855f7, #ec4899, #ef4444); background-size: 300% 100%; -webkit-background-clip: text; background-clip: text; color: transparent; vertical-align: middle; }
+        @keyframes scroll-left { 0% { transform: translateX(0); } 100% { transform: translateX(-100%); } }
+        @keyframes gradient-shift { 0% { background-position: 0% 50%; } 100% { background-position: 100% 50%; } }
+
+        .theme-toggle-button { background: transparent; border: none; color: var(--gray); width: 44px; height: 44px; border-radius: 50%; font-size: 1.25rem; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: var(--transition); padding: 0; }
+        .theme-toggle-button:hover { background: var(--card-hover); color: var(--primary); }
+        .theme-toggle-button .fa-sun { color: #f59e0b; }
+        .theme-toggle-button .fa-moon { color: #818cf8; }
+
+        /* --- Modal Donasi --- */
+        #donationQR { max-width: 180px; height: 180px; border-radius: 8px; background: white; padding: 5px; margin: 0 auto 1rem auto; display: block; cursor: zoom-in; transition: transform 0.2s ease; }
+        #donationQR:hover { transform: scale(1.05); }
+        .donation-controls { display: flex; align-items: center; justify-content: center; gap: 0.5rem; margin-bottom: 1.5rem; }
+        #dontShowAgainCheckbox { width: 16px; height: 16px; accent-color: var(--primary); }
+        .donation-controls label { color: var(--gray); font-size: 0.9rem; cursor: pointer; margin-bottom: 0; }
+
+        /* --- Section Produk/Toko --- */
+        .products-section { background: var(--card-bg); padding: 1.5rem; border-radius: 12px; border: 1px solid var(--border-color); margin-bottom: 2rem; text-align: center; margin-left: 1rem; margin-right: 1rem; }
+        .products-section h2 { font-size: 1.5rem; font-weight: 600; color: var(--light); margin-bottom: 0.5rem; }
+        .products-section p { color: var(--gray); margin-bottom: 1.5rem; max-width: 600px; margin-left: auto; margin-right: auto; }
+        .product-buttons { display: flex; flex-wrap: wrap; justify-content: center; gap: 0.75rem; }
+        .products-section .play-button { text-decoration: none; align-self: center; margin-top: 0; display: inline-flex; justify-content: center; flex-grow: 1; min-width: 150px; }
+        .play-button.btn-secondary { background: var(--card-hover); color: var(--primary); border: 1px solid var(--primary-light); box-shadow: none; }
+        .play-button.btn-secondary:hover { background: var(--primary-light); color: var(--primary-dark); transform: translateY(-2px); box-shadow: 0 4px 12px rgba(99, 102, 241, 0.2); }
+        body[data-theme="dark"] .play-button.btn-secondary { color: var(--primary-light); border-color: var(--primary); background: rgba(255, 255, 255, 0.08);}
+        body[data-theme="dark"] .play-button.btn-secondary:hover { background: var(--primary); color: white; }
+
+        /* --- Stats (jika ada) --- */
+        .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1rem; margin-bottom: 2rem; padding: 0 1rem; }
+        .stats div { background: var(--card-bg); padding: 1.5rem 1rem; border-radius: 12px; text-align: center; transition: var(--transition); border: 1px solid var(--border-color); }
+        .stats div:hover { transform: translateY(-5px); background: var(--card-hover); box-shadow: 0 10px 15px rgba(0, 0, 0, 0.1); }
+        .stats h3 { font-size: 0.95rem; opacity: 0.8; color: var(--gray); margin-bottom: 0.5rem; font-weight: 500; }
+        .stats p { font-size: 1.5rem; font-weight: 700; color: var(--light); }
+
+        /* --- Search Input --- */
+        .content { padding: 0 1rem; }
+        .search-container { margin-bottom: 1.5rem; }
+        #apiSearchInput { width: 100%; padding: 12px 16px; border-radius: 8px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--light); font-size: 1rem; font-family: inherit; transition: var(--transition); box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+        #apiSearchInput::placeholder { color: var(--gray); opacity: 0.7; }
+        #apiSearchInput:focus { outline: none; border-color: var(--input-focus-border); background: var(--input-focus-bg); box-shadow: 0 0 0 3px var(--input-focus-shadow), 0 2px 4px rgba(0,0,0,0.05); }
+        .content h2 { font-size: 1.5rem; color: var(--light); margin-bottom: 1rem; font-weight: 600; }
+
+        /* --- Tabs Kategori API --- */
+        .tabs { display: flex; gap: 1rem; overflow-x: auto; margin-bottom: 1.5rem; padding-bottom: 6px; scrollbar-width: none; }
+        .tabs::-webkit-scrollbar { display: none; height: 0; }
+        .tab { background: none; color: var(--gray); border: none; font-weight: 500; border-bottom: 2px solid transparent; padding: 0.75rem 0; cursor: pointer; font-size: 1rem; white-space: nowrap; transition: var(--transition); position: relative; font-family: inherit; }
+        .tab.active { color: var(--light); border-color: var(--primary); }
+        .tab:after { content: ''; position: absolute; bottom: -2px; left: 0; width: 0; height: 2px; background: var(--primary); transition: var(--transition); }
+        .tab:hover:not(.active):after { width: 100%; }
+
+        /* --- Daftar API Cards --- */
+        .api-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1rem; margin-bottom: 3rem; }
+        .api-card { background: var(--card-bg); padding: 1.25rem; border-radius: 12px; transition: var(--transition); border: 1px solid var(--border-color); display: flex; flex-direction: column; justify-content: space-between; min-height: 180px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); /* Soft shadow */ }
+        .api-card:hover { transform: translateY(-5px); background: var(--card-hover); box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1); border-color: var(--border-color); }
+        .api-info h3 { font-size: 1.2rem; color: var(--light); font-weight: 600; margin-bottom: 0.5rem; display: flex; align-items: center; justify-content: space-between; }
+        .api-info h3 .new-label { background-color: var(--danger); color: white; font-size: 0.65rem; font-weight: 700; padding: 3px 8px; border-radius: 10px; animation: pulse-danger 1.5s infinite; margin-left: 8px; }
+        @keyframes pulse-danger { 0%, 100% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.05); opacity: 0.8; } }
+        .api-info p { font-size: 0.95rem; color: var(--gray); margin-bottom: 1rem; line-height: 1.5; }
+
+        /* --- Style Status API --- */
+        .status { padding: 0.35rem 0.75rem; border-radius: 20px; font-size: 0.75rem; display: inline-block; font-weight: 500; margin-top: 0.5rem; transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease; }
+        .status { background: rgba(16, 185, 129, 0.15); color: var(--success); border: 1px solid rgba(16, 185, 129, 0.3); } /* Active/Success */
+        .status.warning, .status.beta, .status.maintenance { background: rgba(245, 158, 11, 0.15); color: var(--warning); border-color: rgba(245, 158, 11, 0.3); } /* Warning */
+        .status.danger, .status.error, .status.down { background: rgba(239, 68, 68, 0.15); color: var(--danger); border-color: rgba(239, 68, 68, 0.3); } /* Danger/Error */
+        body[data-theme="light"] .status { border: 1px solid transparent; } /* Light mode uses filled background only */
+        body[data-theme="light"] .status.warning, body[data-theme="light"] .status.beta, body[data-theme="light"] .status.maintenance { border: 1px solid transparent; }
+        body[data-theme="light"] .status.danger, body[data-theme="light"] .status.error, body[data-theme="light"] .status.down { border: 1px solid transparent; }
+
+        /* --- Tombol 'Try it now' & Lainnya --- */
+        .play-button { background: linear-gradient(135deg, var(--primary), var(--primary-dark)); border: none; border-radius: 8px; padding: 0.75rem 1.5rem; color: white; cursor: pointer; font-size: 0.95rem; font-weight: 500; text-align: center; transition: var(--transition); align-self: flex-start; margin-top: 1rem; display: flex; align-items: center; gap: 8px; font-family: inherit; justify-content: center; }
+        .play-button:hover { background: linear-gradient(135deg, var(--primary-dark), var(--primary)); transform: translateY(-2px); box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3); }
+        .play-button:active { transform: translateY(0); }
+        #retryRequestBtn { margin-top: 0.5rem; width: 100%; }
+
+        /* --- Footer --- */
+        .footer { text-align: center; padding: 2rem 1rem 1rem 1rem; color: var(--gray); font-size: 0.9rem; border-top: 1px solid var(--border-color); margin-top: 2rem; transition: color 0.3s ease, border-color 0.3s ease; }
+        .contact { margin-top: 1rem; display: flex; justify-content: center; gap: 1rem; }
+        .contact a { color: var(--gray); text-decoration: none; font-size: 1.25rem; transition: var(--transition); width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; border-radius: 50%; background: var(--card-bg); border: 1px solid var(--border-color); }
+        .contact a:hover { color: white; background: var(--primary); transform: translateY(-3px); box-shadow: 0 4px 8px rgba(99, 102, 241, 0.3); border-color: var(--primary); }
+        body[data-theme="light"] .contact a:hover { color: white; }
+
+        /* --- Animasi Fade In --- */
+        @keyframes fadeInUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        .fade-in { animation: fadeInUp 0.6s ease forwards; opacity: 0; } /* Start hidden for animation */
+
+        /* --- QR Lightbox --- */
+        .qr-lightbox-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0, 0, 0, 0.8); display: flex; align-items: center; justify-content: center; z-index: 101; opacity: 0; pointer-events: none; transition: opacity 0.3s ease; cursor: zoom-out; }
+        .qr-lightbox-overlay.active { opacity: 1; pointer-events: all; }
+        #lightboxImage { max-width: 90vw; max-height: 90vh; width: auto; height: auto; background: white; padding: 10px; border-radius: 12px; cursor: default; transform: scale(0.8); transition: transform 0.3s ease; }
+        .qr-lightbox-overlay.active #lightboxImage { transform: scale(1); }
+
+        /* --- Tombol & Kontrol Musik --- */
+        #musicFabContainer { position: fixed; bottom: 1.5rem; right: 1.5rem; z-index: 90; }
+        #fabToggleBtn { width: 56px; height: 56px; border-radius: 50%; background: linear-gradient(135deg, var(--primary), var(--primary-dark)); border: none; color: white; font-size: 1.5rem; display: flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,0.2); transition: var(--transition); }
+        #fabToggleBtn:hover { transform: scale(1.05); box-shadow: 0 6px 16px rgba(0,0,0,0.25); }
+        #musicControlsExpanded { position: absolute; bottom: calc(100% + 0.75rem); right: 0; display: none; flex-direction: column; align-items: center; gap: 0.75rem; background: var(--card-bg); padding: 1rem; border-radius: 12px; box-shadow: 0 6px 16px rgba(0,0,0,0.2); border: 1px solid var(--border-color); transition: opacity 0.3s ease, transform 0.3s ease; opacity: 0; transform: translateY(10px); pointer-events: none; }
+        #musicControlsExpanded.active { display: flex; opacity: 1; transform: translateY(0); pointer-events: auto; }
+        #musicControlsExpanded button { background: none; border: none; color: var(--gray); font-size: 1.1rem; cursor: pointer; padding: 0.3rem; line-height: 1; transition: color 0.2s ease, transform 0.2s ease; }
+        #musicControlsExpanded button:hover { color: var(--light); transform: scale(1.1); }
+        #volumeSlider { width: 100px; height: 5px; cursor: pointer; accent-color: var(--primary); margin-top: 0.2rem; }
+        #volumeSlider::-webkit-slider-thumb { appearance: none; width: 14px; height: 14px; background: var(--primary); border-radius: 50%; }
+        #volumeSlider::-moz-range-thumb { width: 14px; height: 14px; background: var(--primary); border-radius: 50%; border: none; }
+
+        /* --- Notifikasi Popup --- */
+        #notification { position: fixed; top: 0; left: 50%; transform: translateX(-50%) translateY(-120%); min-width: 250px; max-width: 90%; padding: 0.9rem 1.5rem; border-radius: 8px; background-color: var(--card-bg); color: var(--light); text-align: center; font-size: 0.95rem; font-weight: 500; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15); z-index: 1000; transition: transform 0.4s ease-in-out, background-color 0.3s ease, color 0.3s ease; border: 1px solid var(--border-color); }
+        #notification.show { transform: translateX(-50%) translateY(20px); }
+        #notification.error { background-color: var(--danger-bg); color: var(--danger-text); border-color: var(--danger); }
+        #notification.success { background-color: var(--success-bg); color: var(--success-text); border-color: var(--success); }
+        #notification.warning { background-color: var(--warning-bg); color: var(--warning-text); border-color: var(--warning); }
+
+        /* --- Responsive Design --- */
+        @media (max-width: 768px) {
+            body { padding: calc(var(--header-height) + 0.5rem) 0.5rem 0.5rem 0.5rem; }
+            .hero { padding: 0 0.5rem; }
+            .products-section, .stats, .content, .footer, .blacklist-section { padding-left: 0.5rem; padding-right: 0.5rem; margin-left: 0; margin-right: 0;} /* Tambahkan .blacklist-section */
+            .hero h2 { font-size: 2rem; } .hero p { font-size: 1rem; } .api-list { grid-template-columns: 1fr; } .stats { grid-template-columns: repeat(2, 1fr); }
+            #musicFabContainer { bottom: 1rem; right: 1rem; }
+            .top-navbar { padding: 0 1rem; }
+            .navbar-scrolling-text-wrapper { margin: 0 1rem; }
+        }
+        @media (max-width: 480px) {
+            body { padding-top: calc(var(--header-height) + 0.5rem); }
+            .hero h2 { font-size: 1.75rem; }
+            .api-platform-badge { font-size: 0.8rem; padding: 0.3rem 0.7rem; }
+            .stats { grid-template-columns: 1fr; } .modal-dialog { padding: 1.25rem; }
+            .top-navbar { padding: 0 0.5rem; }
+            .navbar-logo img { height: 28px; width: 28px; }
+            .navbar-scrolling-text-wrapper { margin: 0 0.5rem; }
+            .scrolling-text { font-size: 0.9rem; }
+            .theme-toggle-button { width: 40px; height: 40px; font-size: 1.1rem; }
+            .api-list { grid-template-columns: 1fr; }
+            .products-section, .content, .footer, .blacklist-section { padding-left: 0.5rem; padding-right: 0.5rem; } /* Tambahkan .blacklist-section */
+            .product-buttons { flex-direction: column; }
+            #musicFabContainer { bottom: 1rem; right: 1rem; }
+            #musicControlsExpanded { right: 0; }
+            .blacklist-section h2 { font-size: 1.3rem; } /* Kecilkan judul blacklist di HP */
+            .blacklist-section pre { font-size: 0.75rem; } /* Kecilkan font IP di HP */
+        }
+    </style>
+</head>
+<body>
+
+    <div id="preloader">
+        <div class="loader-content">
+            <img src="/icon.png" alt="Loading..." class="pulsing-logo">
+            <p>Loading API...</p>
+        </div>
+    </div>
+
+    <div id="notification" class=""></div>
+
+    <header class="top-navbar">
+        <div class="navbar-logo"> <img src="/icon.png" alt="Logo"> </div>
+        <div class="navbar-scrolling-text-wrapper">
+            <div class="scrolling-text-container"> <span class="scrolling-text">Selamat Datang di Rikishopreal Api! Semoga harimu menyenangkan!</span> </div>
+        </div>
+        <div class="navbar-theme-switcher"> <button id="theme-toggle-btn" class="theme-toggle-button" aria-label="Toggle theme"></button> </div>
+    </header>
+
+    <div class="container">
+        <section class="hero fade-in">
+             <div class="api-platform-badge" id="apiPlatformBadge"> <i class="fa-solid fa-rocket"></i> REST API Platform </div>
+             <div class="hero-header"> <h2 id="apiTitle"></h2> </div>
+             <p>Unlock the power of seamless integration with our comprehensive API suite. Access powerful endpoints with just a few clicks.</p>
+        </section>
+
+        <section class="products-section fade-in" style="animation-delay: 0.2s;">
+            <h2>Jelajahi Produk Kami</h2>
+            <p>Butuh script, layanan digital, atau produk premium lainnya? Kunjungi toko kami untuk melihat semua penawaran terbaik. Dapatkan solusi yang Anda butuhkan hari ini!</p>
+            <div class="product-buttons">
+                 <button id="aboutApiBtn" class="play-button btn-secondary"> <i class="fa-solid fa-info-circle"></i> Tentang API </button>
+                 <a href="https://toko.rikishop.my.id" target="_blank" rel="noopener noreferrer" class="play-button"> <i class="fa-solid fa-store"></i> Kunjungi Toko </a>
+                 <button id="reportErrorBtn" class="play-button btn-secondary"> <i class="fa-solid fa-bug"></i> Lapor Error </button>
+                 <button id="requestFeatureBtn" class="play-button btn-secondary"> <i class="fa-solid fa-wand-magic-sparkles"></i> Request Fitur </button>
+            </div>
+        </section>
+
+        <section class="content" id="apiContentSection">
+             <div class="search-container"> <input type="search" id="apiSearchInput" placeholder="🔍 Cari endpoint..."> </div>
+             <div class="tabs" id="tabs"></div>
+             <div id="api-list" class="api-list">
+                 </div>
+             <p id="noResultsMessage" style="display: none; text-align: center; color: var(--gray); margin-top: 1.5rem; grid-column: 1 / -1;">Endpoint tidak ditemukan.</p>
+        </section>
+    </div>
+
+    <div class="modal" id="apiResponseModal"> <div class="modal-dialog"> <div class="modal-header"> <div> <h5 id="modalApiName">Nama API</h5> <span id="modalApiDesc">Deskripsi API</span> </div> <button class="btn-close">×</button> </div> <div class="modal-body"> <div class="copy-section"> <span id="copyEndpointText"></span> <button class="copy-button"><i class="far fa-copy"></i> Copy URL</button> </div> <form id="paramForm" style="margin-bottom: 0.5rem"></form> <button id="submitParamBtn" type="button" style="display: none;"></button> <button id="retryRequestBtn" class="play-button btn-secondary d-none" style="margin-top: 0.5rem; width: 100%;"> <i class="fa-solid fa-rotate-right"></i> Coba Ulang </button> <div id="apiResponseLoading" class="loading-spinner" style="display: none;"></div> <button id="copyResponseBtn" class="copy-button d-none" style="margin-bottom: 0.75rem;"><i class="far fa-copy"></i> Copy Response</button> <pre id="apiResponseContent" class="d-none"></pre> </div> </div> </div>
+    <div class="modal" id="reportModal"> <div class="modal-dialog"> <div class="modal-header"> <div> <h5 id="reportModalTitle">Judul Modal Laporan</h5> <span>Kirimkan masukan Anda ke developer</span> </div> <button class="btn-close">×</button> </div> <div class="modal-body"> <form id="reportForm"> <input type="hidden" id="reportType" value=""> <label for="reportName">Nama Anda</label> <input type="text" id="reportName" name="nama" placeholder="Masukkan nama Anda (opsional)..."> <label for="reportText">Isi Teks Laporan/Request</label> <textarea id="reportText" name="teks" placeholder="Jelaskan error atau fitur yang Anda inginkan..." required></textarea> <button id="submitReportBtn" type="submit"> <i class="fa-solid fa-paper-plane"></i> Kirim </button> </form> </div> </div> </div>
+    <div class="modal" id="donationModal"> <div class="modal-dialog" style="max-width: 360px; text-align: center;"> <div class="modal-header" style="border-bottom: none; padding-bottom: 0.5rem; margin-bottom: 0;"> <h5 style="width: 100%; text-align: center; margin-bottom: 0;">Support Us</h5> <button class="btn-close" style="position: absolute; top: 8px; right: 8px;"></button> </div> <div class="modal-body" style="padding-top: 0;"> <p style="color: var(--gray); margin-bottom: 1rem; font-size: 0.9rem;">Merasa API ini bermanfaat? Anda bisa mendukung pengembangan lebih lanjut.</p> <img src="/images/donasi-qr.png" alt="Donation QR Code" id="donationQR"> <div class="donation-controls"> <input type="checkbox" id="dontShowAgainCheckbox" name="dontShowAgain"> <label for="dontShowAgainCheckbox">Jangan tampilkan lagi</label> </div> <button id="continueBtn" class="play-button" style="width: 100%; margin-top: 0.8rem; justify-content: center;"> Lanjut </button> </div> </div> </div>
+    <div class="modal" id="aboutApiModal"> <div class="modal-dialog"> <div class="modal-header"> <div> <h5 id="aboutApiModalTitle">Tentang API Ini</h5> <span id="aboutApiCreator"></span> </div> <button class="btn-close">×</button> </div> <div class="modal-body" style="font-size: 0.9rem; line-height: 1.6; color: var(--gray);"> <p style="margin-bottom: 0.8rem;">Selamat datang di <strong id="aboutApiName" style="color: var(--light);">Nama API</strong>!</p> <p style="margin-bottom: 0.8rem;">Ini adalah layanan RESTful API yang menyediakan berbagai endpoint bermanfaat untuk kebutuhan digital Anda.</p> <p style="margin-bottom: 0.8rem;"> <strong>Tujuan Utama:</strong><br> Memberikan akses yang mudah, cepat, dan stabil ke berbagai layanan digital melalui API.</p> <p> Silakan gunakan tombol <i class="fa-solid fa-play"></i> <strong>Try it now</strong> pada setiap endpoint untuk melakukan uji coba langsung. Gunakan juga tombol "Lapor Error" atau "Request Fitur" di halaman utama untuk memberikan masukan kepada kami.</p> <br> <p>Terima kasih telah menggunakan layanan ini!</p> </div> </div> </div>
+    <div id="qrLightbox" class="qr-lightbox-overlay"> <img src="" alt="Zoomed QR Code" id="lightboxImage"> </div>
+
+    <audio id="backgroundMusic" loop preload="metadata"> <source src="/audio/music.mp3" type="audio/mpeg"> Your browser does not support the audio element. </audio>
+    <div id="musicFabContainer"> 
+    <div id="musicControlsExpanded">
+             <button id="playPauseBtn" title="Play/Pause"><i class="fas fa-play"></i></button>
+             <button id="muteBtn" title="Mute/Unmute"><i class="fas fa-volume-up"></i></button>
+             <input type="range" id="volumeSlider" min="0" max="1" step="0.01" value="1" title="Volume">
+        </div>
+        <button id="fabToggleBtn" title="Music Controls"><i class="fas fa-music"></i></button> </div>
+
+    <footer class="footer">
+         <div id="credits">© Tahun Sekarang By Nama Kreator</div>
+         <div class="contact">
+             <a id="githubLink" href="#" target="_blank" title="GitHub"><i class="fab fa-github"></i></a>
+             <a id="whatsappLink" href="#" target="_blank" title="WhatsApp"><i class="fab fa-whatsapp"></i></a>
+             <a id="youtubeLink" href="#" target="_blank" title="YouTube"><i class="fab fa-youtube"></i></a>
+         </div>
+    </footer>
+
+    <script defer>
+        // --- Variabel Global ---
+        let endpointStatuses = {};
+        let lastFetchedUrl = "";
+        let settings = {};
+
+        // --- Fungsi Utilitas ---
+        function highlightJSON(json) { try { if (typeof json != 'string') { json = JSON.stringify(json, null, 2); } json = json.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); return json.replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g, function(match) { let cls = 'json-number'; if (/^"/.test(match)) { cls = /:$/.test(match) ? 'json-key' : 'json-string'; } else if (/true|false/.test(match)) { cls = 'json-boolean'; } else if (/null/.test(match)) { cls = 'json-null'; } return '<span class="' + cls + '">' + match + '</span>'; }); } catch (e) { console.error("Error highlighting JSON:", e); return '<span class="json-string">' + String(json).replace(/</g, '&lt;').replace(/>/g, '&gt;') + '</span>'; } }
+        let notificationTimeout; function showNotification(message, type = 'info', duration = 3000) { const n = document.getElementById('notification'); if (!n) return; clearTimeout(notificationTimeout); n.textContent = message; n.className = ''; n.classList.add('notification', type, 'show'); notificationTimeout = setTimeout(() => { n.classList.remove('show'); }, duration); }
+        function copyToClipboard(textToCopy, buttonElement, successMessage = "Copied!", isCopyUrl = false) { const originalIconHTML = buttonElement.innerHTML; const successIconHTML = `<i class="fas fa-check"></i> ${successMessage}`; const failIconHTML = '<i class="fas fa-times"></i> Copy Failed'; const showFeedback = (success) => { buttonElement.innerHTML = success ? successIconHTML : failIconHTML; showNotification(success ? successMessage : "Gagal menyalin ke clipboard!", success ? 'success' : 'error'); setTimeout(() => { buttonElement.innerHTML = originalIconHTML; }, 2000); }; if (navigator.clipboard && window.isSecureContext) { navigator.clipboard.writeText(textToCopy).then(() => showFeedback(true)).catch(err => { console.error("Modern copy failed:", err); fallbackCopy(textToCopy, showFeedback); }); } else { console.warn("Using fallback copy method."); fallbackCopy(textToCopy, showFeedback); } }
+        function fallbackCopy(text, callback) { try { const ta = document.createElement("textarea"); ta.value = text; Object.assign(ta.style, { position: "fixed", top: "-9999px", left: "-9999px", opacity: "0", width: "1px", height:"1px" }); document.body.appendChild(ta); ta.select(); ta.setSelectionRange(0, 99999); const ok = document.execCommand('copy'); document.body.removeChild(ta); callback(ok); } catch (err) { console.error("Fallback copy failed:", err); callback(false); } }
+
+        // --- Polling Status API ---
+        async function updateStatuses() { try { const response = await fetch('/api/endpoint-status'); if (!response.ok) { /* console.warn("Polling status gagal:", response.status); */ return; } const data = await response.json(); if (data?.data) { const changed = Object.keys(data.data).some(path => endpointStatuses[path] !== data.data[path]); /* if(changed) console.log("Status endpoint diperbarui."); */ endpointStatuses = data.data; const apiListDiv = document.getElementById('api-list'); if (!apiListDiv) return; requestAnimationFrame(() => { for (const path in endpointStatuses) { const status = endpointStatuses[path]; const statusSpan = apiListDiv.querySelector(`.status[data-path="${path}"]`); if (statusSpan && statusSpan.textContent !== status) { statusSpan.textContent = status; statusSpan.className = 'status'; const lowerStatus = status.toLowerCase(); if (lowerStatus.includes("error") || lowerStatus.includes("danger") || lowerStatus.includes("down")) statusSpan.classList.add('danger'); else if (lowerStatus.includes("warning") || lowerStatus.includes("beta") || lowerStatus.includes("maintenance")) statusSpan.classList.add('warning'); } } }); } } catch (e) { /* console.error("Error saat polling status:", e); */ } }
+        function startStatusPolling() { setTimeout(updateStatuses, 1500); setInterval(updateStatuses, 45000); }
+
+        // --- Filter Kartu API ---
+        function filterApiCards() { const searchInput = document.getElementById('apiSearchInput'); const apiListContainer = document.getElementById('api-list'); const noResultsMsg = document.getElementById('noResultsMessage'); if (!searchInput || !apiListContainer || !noResultsMsg) return; const searchTerm = searchInput.value.toLowerCase().trim(); const cards = apiListContainer.querySelectorAll('.api-card'); let visibleCount = 0; cards.forEach(card => { const titleElement = card.querySelector('.api-info h3'); const descElement = card.querySelector('.api-info p'); const titleText = titleElement ? titleElement.textContent.toLowerCase().replace(/new/g, '').trim() : ''; const descText = descElement ? descElement.textContent.toLowerCase() : ''; const isMatch = searchTerm === '' || titleText.includes(searchTerm) || descText.includes(searchTerm); card.style.display = isMatch ? 'flex' : 'none'; if(isMatch) visibleCount++; }); noResultsMsg.style.display = (visibleCount === 0 && searchTerm !== '') ? 'block' : 'none'; }
+
+        // --- Eksekusi Utama ---
+        document.addEventListener("DOMContentLoaded", async () => {
+
+            const preloader = document.getElementById('preloader');
+            if (preloader) { setTimeout(() => { preloader.classList.add('hidden'); }, 200); }
+
+            const themeToggleBtn = document.getElementById("theme-toggle-btn"); const body = document.body; const applyTheme = (theme) => { body.setAttribute("data-theme", theme); localStorage.setItem("theme", theme); if (themeToggleBtn) themeToggleBtn.innerHTML = theme === "dark" ? '<i class="fa-solid fa-sun"></i>' : '<i class="fa-solid fa-moon"></i>'; }; if (themeToggleBtn) { themeToggleBtn.addEventListener("click", () => applyTheme(body.getAttribute("data-theme") === "dark" ? "light" : "dark")); const savedTheme = localStorage.getItem("theme"); const prefersDark = window.matchMedia?.('(prefers-color-scheme: dark)').matches; applyTheme(savedTheme || (prefersDark ? "dark" : "light")); }
+
+            const startDelay = 500; const donationModal = document.getElementById("donationModal"); const continueBtn = document.getElementById("continueBtn"); const dontShowCheckbox = document.getElementById("dontShowAgainCheckbox"); const hideDonation = localStorage.getItem("hideDonationModal"); const bgMusic = document.getElementById('backgroundMusic'); const musicFab = document.getElementById('musicFabContainer'); const fabToggle = document.getElementById('fabToggleBtn'); const musicControls = document.getElementById('musicControlsExpanded'); const playPause = document.getElementById('playPauseBtn'); const muteBtn = document.getElementById('muteBtn'); const volume = document.getElementById('volumeSlider'); let musicStarted = false; const tryStartMusic = () => { if (bgMusic && !musicStarted) { bgMusic.volume = parseFloat(localStorage.getItem('musicVolume') || volume?.value || 1); if (localStorage.getItem('musicMuted') === 'true') { bgMusic.muted = true; if(muteBtn) muteBtn.innerHTML = '<i class="fas fa-volume-mute"></i>'; } else { bgMusic.muted = false; if(muteBtn) muteBtn.innerHTML = '<i class="fas fa-volume-up"></i>'; } if (volume) volume.value = bgMusic.volume; bgMusic.play().then(() => { if(playPause) playPause.innerHTML = '<i class="fas fa-pause"></i>'; if(musicFab) musicFab.classList.remove('d-none'); musicStarted = true; }).catch(e => { if(playPause) playPause.innerHTML = '<i class="fas fa-play"></i>'; if(musicFab) musicFab.classList.remove('d-none'); musicStarted = true; console.warn("Autoplay musik gagal:", e.message); }); } }; if (!hideDonation && donationModal) { setTimeout(() => donationModal.classList.add("active"), startDelay); } else { setTimeout(tryStartMusic, startDelay); } if (continueBtn && donationModal) { continueBtn.addEventListener("click", () => { if (dontShowCheckbox?.checked) localStorage.setItem("hideDonationModal", "true"); donationModal.classList.remove("active"); tryStartMusic(); }); } if (fabToggle && musicControls) { fabToggle.addEventListener('click', () => { const isExpanded = musicControls.classList.toggle('active'); fabToggle.innerHTML = isExpanded ? '<i class="fas fa-times"></i>' : '<i class="fas fa-music"></i>'; }); } if (playPause && bgMusic) { playPause.addEventListener('click', () => { if (bgMusic.paused) bgMusic.play().catch(console.error); else bgMusic.pause(); }); } if (muteBtn && bgMusic) { muteBtn.addEventListener('click', () => { bgMusic.muted = !bgMusic.muted; muteBtn.innerHTML = bgMusic.muted ? '<i class="fas fa-volume-mute"></i>' : '<i class="fas fa-volume-up"></i>'; localStorage.setItem('musicMuted', bgMusic.muted); if (!bgMusic.muted && bgMusic.volume === 0 && volume) { volume.value = 0.1; bgMusic.volume = 0.1; localStorage.setItem('musicVolume', 0.1); } }); } if (volume && bgMusic) { volume.addEventListener('input', (e) => { const nv = parseFloat(e.target.value); bgMusic.volume = nv; localStorage.setItem('musicVolume', nv); if (nv === 0 && !bgMusic.muted) { bgMusic.muted = true; if(muteBtn) muteBtn.innerHTML = '<i class="fas fa-volume-mute"></i>'; localStorage.setItem('musicMuted', true); } else if (nv > 0 && bgMusic.muted) { bgMusic.muted = false; if(muteBtn) muteBtn.innerHTML = '<i class="fas fa-volume-up"></i>'; localStorage.setItem('musicMuted', false); } }); } if (bgMusic && playPause) { bgMusic.onplay = () => playPause.innerHTML = '<i class="fas fa-pause"></i>'; bgMusic.onpause = () => playPause.innerHTML = '<i class="fas fa-play"></i>'; bgMusic.onended = () => playPause.innerHTML = '<i class="fas fa-play"></i>'; }
+
+            const qrImg = document.getElementById("donationQR"); const qrBox = document.getElementById("qrLightbox"); const lightImg = document.getElementById("lightboxImage"); if (qrImg && qrBox && lightImg) { qrImg.addEventListener("click", () => { lightImg.src = qrImg.src; qrBox.classList.add("active"); }); qrBox.addEventListener("click", (e) => { if (e.target === qrBox) qrBox.classList.remove("active"); }); }
+
+            const tabsContainer = document.getElementById("tabs"); const apiList = document.getElementById("api-list"); let currentEndpointPath = ""; let currentEndpointRequiresApiKey = false;
+            try { const response = await fetch("/settings.json"); if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`); settings = await response.json(); } catch (e) { console.error("Gagal memuat settings.json:", e); showNotification("Gagal memuat konfigurasi API!", "error", 5000); if (apiList) apiList.innerHTML = "<p style='color: var(--danger-text); text-align: center;'>Gagal memuat konfigurasi.</p>"; return; }
+            const apis = settings.endpoints || {};
+            const apiTitleEl = document.getElementById("apiTitle"); if (apiTitleEl) apiTitleEl.innerHTML = `${settings.apititle || "API Docs"} <span class="version-label">v1.1.1</span>`;
+            const setC = (id, p, v, isHref=false) => { const el = document.getElementById(id); if (el) { if(isHref){if(v) el.href=v; else el.style.display='none';} else el[p] = v || ''; }};
+            setC("page", "textContent", settings.pagetitle || settings.apititle || "API Docs"); setC("credits", "textContent", `© ${new Date().getFullYear()} By ${settings.creator || "Dev"}`);
+            setC("githubLink", "href", settings.github, true); setC("whatsappLink", "href", settings.whatsapp, true); setC("youtubeLink", "href", settings.youtube, true);
+            setC("aboutApiName", "textContent", settings.apititle || "API"); setC("aboutApiCreator", "textContent", "By " + (settings.creator || "Dev"));
+
+            const renderAPIs = (category = 'all') => { if (!apiList) return; apiList.innerHTML = ""; let eps = []; const allEps = Object.values(apis).flat().filter(Boolean); if (category === 'all') eps = allEps; else if (apis[category]?.length) eps = apis[category].filter(Boolean); if (eps.length === 0 && category !== 'all') { apiList.innerHTML = `<p style='color: var(--gray); text-align: center; grid-column: 1 / -1;'>Kategori '${category}' kosong.</p>`; return; } if (allEps.length === 0) { apiList.innerHTML = `<p style='color: var(--gray); text-align: center; grid-column: 1 / -1;'>Belum ada endpoint.</p>`; return; } requestAnimationFrame(() => { eps.forEach((api, index) => { if (!api?.path || !api?.name) { console.warn("Skipping invalid endpoint:", api); return;} const card = document.createElement("div"); card.className = "api-card fade-in"; card.style.animationDelay = `${index * 0.03}s`; let isNew = false; if (api.dateAdded) try { if ((Date.now() - new Date(api.dateAdded).getTime()) / 36e5 <= 24) isNew = true; } catch (e) {} const newLabel = isNew ? '<span class="new-label">NEW</span>' : ''; const basePath = api.path.split('?')[0]; const liveStatus = endpointStatuses[basePath] || api.status || 'Active'; let sC = ""; const lS = liveStatus.toLowerCase(); if (lS.includes("error") || lS.includes("danger") || lS.includes("down")) sC = "danger"; else if (lS.includes("warning") || lS.includes("beta") || lS.includes("maintenance")) sC = "warning"; card.innerHTML = `<div class="api-info"><h3>${api.name} ${newLabel}</h3><p>${api.desc || ''}</p><span class="status ${sC}" data-path="${basePath}">${liveStatus}</span></div><button class="play-button" data-endpoint="${api.path}" data-apiname="${api.name}" data-apidesc="${api.desc||''}"><i class="fa-solid fa-play"></i> Try it now</button>`; apiList.appendChild(card); }); filterApiCards(); }); };
+            if (tabsContainer && apiList && Object.keys(apis).length > 0) { const allBtn = document.createElement("button"); allBtn.className = "tab active"; allBtn.dataset.tab = "all"; allBtn.innerText = "All"; tabsContainer.appendChild(allBtn); Object.keys(apis).forEach(k => { const btn = document.createElement("button"); btn.className = "tab"; btn.dataset.tab = k; btn.innerText = k[0].toUpperCase() + k.slice(1); tabsContainer.appendChild(btn); }); renderAPIs("all"); } else if (apiList) { apiList.innerHTML = "<p style='color: var(--gray); text-align: center; grid-column: 1 / -1;'>No endpoints found.</p>"; }
+
+            // === Logika Membuka Modal API Response (DIMODIFIKASI) ===
+            const openApiModal = (playBtn) => {
+                const endpointPath = playBtn.dataset.endpoint;
+                const apiName = playBtn.dataset.apiname;
+                const apiDesc = playBtn.dataset.apidesc;
+
+                const modal = document.getElementById("apiResponseModal");
+                const modalTitle = document.getElementById("modalApiName");
+                const modalDesc = document.getElementById("modalApiDesc");
+                const form = document.getElementById("paramForm");
+                const submitBtn = document.getElementById("submitParamBtn");
+                const copySection = modal.querySelector(".copy-section");
+                const copyTextEl = document.getElementById("copyEndpointText");
+                const respEl = document.getElementById("apiResponseContent");
+                const loadEl = document.getElementById("apiResponseLoading");
+                const retryBtn = document.getElementById("retryRequestBtn");
+                const copyRespBtn = document.getElementById("copyResponseBtn");
+
+                if (!modal || !modalTitle || !modalDesc || !form || !submitBtn || !copySection || !copyTextEl || !respEl || !loadEl || !retryBtn || !copyRespBtn) { console.error("Elemen modal API tidak lengkap!"); showNotification("Gagal membuka modal API.", "error"); return; }
+
+                // Reset state modal umum
+                respEl.innerHTML = ""; respEl.classList.add("d-none"); respEl.className = ''; respEl.classList.add('d-none'); // Reset class warna juga
+                loadEl.style.display = "none";
+                form.innerHTML = ""; form.style.display = "block";
+                submitBtn.style.display = "none";
+                copyRespBtn.classList.add("d-none");
+                retryBtn.classList.add('d-none'); retryBtn.removeAttribute('data-action'); // Hapus data action khusus
+                copySection.classList.remove("active");
+                lastFetchedUrl = "";
+                currentEndpointPath = endpointPath;
+                currentEndpointRequiresApiKey = endpointPath.includes("apikey=");
+
+                modalTitle.innerText = apiName || "API Endpoint";
+                modalDesc.innerText = apiDesc || " ";
+
+                // === KONDISI KHUSUS UNTUK /api/blacklist-info ===
+                if (endpointPath === '/api/blacklist-info') {
+                    form.style.display = 'none';
+                    submitBtn.style.display = 'none';
+                    copySection.classList.remove('active');
+                    retryBtn.setAttribute('data-action', 'fetchBlacklist'); // Tandai tombol retry
+                    fetchAndDisplayBlacklistInfo(); // Langsung fetch dan tampilkan
+                }
+                // === AKHIR KONDISI KHUSUS ===
+
+                // === LOGIKA FORM PARAMETER (Untuk endpoint selain blacklist) ===
+                else {
+                    const pathParts = endpointPath.split('?');
+                    const basePath = pathParts[0];
+                    let displayUrl = basePath;
+                    const queryParams = pathParts[1] ? pathParts[1].split('&') : [];
+                    let hasQueryParams = false;
+                    let hasApiKeyParamInPath = false;
+
+                    if (queryParams.length > 0) {
+                        hasQueryParams = true;
+                        const paramsToDisplay = [];
+                        queryParams.forEach(p => {
+                            const [key, defaultValue = ""] = p.split("=");
+                            if (!key) return;
+                            const label = key.charAt(0).toUpperCase() + key.slice(1);
+                            const isApiKey = key.toLowerCase() === 'apikey';
+                            if (isApiKey) hasApiKeyParamInPath = true;
+                            const isRequired = !isApiKey /* && defaultValue !== '' */; // Hapus cek default value, andalkan atribut 'required' jika ada
+                            form.innerHTML += `<label for="${key}">${label}${isRequired ? ' (Wajib)' : ''}</label><input type="text" id="${key}" name="${key}" value="${defaultValue}" placeholder="Masukkan ${label}..." ${isRequired ? 'required' : ''} />`;
+                            if (!isApiKey) paramsToDisplay.push(`${key}=`);
+                        });
+                        if (currentEndpointRequiresApiKey && !hasApiKeyParamInPath) paramsToDisplay.push('apikey=');
+                        if (paramsToDisplay.length > 0) displayUrl += "?" + paramsToDisplay.join('&');
+                    } else if (currentEndpointRequiresApiKey) {
+                        displayUrl += '?apikey=';
+                        // Jika butuh API key tapi tidak ada di path, tambahkan inputnya
+                         form.innerHTML += `<label for="apikey">Apikey</label><input type="text" id="apikey" name="apikey" value="" placeholder="Masukkan Apikey..." required />`;
+                         hasQueryParams = true; // Anggap ada parameter
+                    }
+
+                    if (hasQueryParams) { // Tampilkan tombol submit jika ada form
+                        submitBtn.innerHTML = '<i class="fa-solid fa-paper-plane"></i> Submit';
+                        submitBtn.style.display = "flex";
+                    } else { // Tampilkan tombol try jika tidak ada form
+                        submitBtn.innerHTML = '<i class="fa-solid fa-play"></i> Try it';
+                        submitBtn.style.display = "flex";
+                    }
+
+                    copyTextEl.innerText = window.location.origin + displayUrl;
+                    copySection.classList.add("active");
+                }
+                modal.classList.add("active");
+             };
+            // === Akhir openApiModal ===
+
+            // --- Fungsi Fetch API (Asli) ---
+            async function fetchAPI(url) {
+                const fullURL = url.startsWith('/') ? window.location.origin + url : url;
+                const respEl = document.getElementById("apiResponseContent");
+                const loadEl = document.getElementById("apiResponseLoading");
+                const urlSection = document.querySelector("#apiResponseModal .copy-section");
+                const modal = document.getElementById("apiResponseModal");
+                const copyRespBtn = document.getElementById("copyResponseBtn");
+                const retryBtn = document.getElementById("retryRequestBtn");
+                if (!modal || !respEl || !loadEl || !copyRespBtn || !retryBtn) return;
+                const copyTxtEl = document.getElementById("copyEndpointText");
+                if (urlSection?.classList.contains('active') && copyTxtEl) copyTxtEl.innerText = fullURL;
+                loadEl.style.display = "block"; respEl.classList.add("d-none"); respEl.className = 'd-none'; // Reset class warna
+                copyRespBtn.classList.add("d-none"); retryBtn.classList.add('d-none'); respEl.innerHTML = "";
+                try {
+                    const response = await fetch(fullURL);
+                    loadEl.style.display = "none"; let hasContent = false; const contentType = response.headers.get("content-type");
+                    if (!response.ok) { let eBody = `HTTP error! ${response.status} ${response.statusText}`; try { const eTxt = await response.text(); try { const eJson = JSON.parse(eTxt); eBody = eJson.error || eJson.message || JSON.stringify(eJson, null, 2); } catch { eBody = eTxt.substring(0, 500); } } catch {} throw new Error(eBody); }
+                    if (contentType?.includes("application/json")) { const data = await response.json(); respEl.innerHTML = highlightJSON(data); hasContent = true; }
+                    else if (contentType?.startsWith("image/")) { const blob = await response.blob(); const imgUrl = URL.createObjectURL(blob); const ext = contentType.split('/')[1]?.split(';')[0] || 'png'; respEl.innerHTML = `<img src="${imgUrl}" alt="API Img" style="max-width:100%;max-height:300px;border-radius:4px;display:block;margin:auto;" /><a href="${imgUrl}" download="img.${ext}" style="display:block;text-align:center;margin-top:10px;color:var(--primary);">Download Image</a>`; hasContent = true; }
+                    else { const text = await response.text(); try { respEl.innerHTML = highlightJSON(JSON.parse(text)); hasContent = true; } catch { const escTxt = text.replace(/</g, "&lt;").replace(/>/g, "&gt;"); respEl.textContent = escTxt.substring(0, 3000); if(text.trim()) hasContent = true; } }
+                    respEl.classList.remove("d-none"); if(hasContent) { copyRespBtn.classList.remove("d-none"); copyRespBtn.innerHTML = '<i class="far fa-copy"></i> Copy Response'; } retryBtn.classList.remove('d-none');
+                } catch (err) { loadEl.style.display = "none"; respEl.classList.remove("d-none"); respEl.classList.add('error-text'); const errMsg = err.message || "Request failed."; respEl.textContent = "Fetch Error:\n" + errMsg; copyRespBtn.classList.remove("d-none"); copyRespBtn.innerHTML = '<i class="far fa-copy"></i> Copy Error'; retryBtn.classList.remove('d-none'); showNotification("Request Failed: " + errMsg.substring(0, 100), 'error', 4000); console.error("Fetch API Error:", err); }
+            }
+
+            // +++ FUNGSI BARU UNTUK FETCH & TAMPILKAN BLACKLIST +++
+            async function fetchAndDisplayBlacklistInfo() {
+                const respEl = document.getElementById("apiResponseContent");
+                const loadEl = document.getElementById("apiResponseLoading");
+                const copyRespBtn = document.getElementById("copyResponseBtn");
+                const retryBtn = document.getElementById("retryRequestBtn");
+                const modal = document.getElementById("apiResponseModal");
+
+                if (!modal || !respEl || !loadEl || !copyRespBtn || !retryBtn) return;
+
+                loadEl.style.display = "block";
+                respEl.classList.add("d-none"); respEl.innerHTML = ''; respEl.className = ''; respEl.classList.add('d-none', 'blacklist-info'); // Tambahkan class khusus
+
+                try {
+                    // 1. Ambil daftar blacklist
+                    const blacklistResponse = await fetch('/api/blacklist-info');
+                    if (!blacklistResponse.ok) throw new Error(`Gagal memuat blacklist: ${blacklistResponse.statusText}`);
+                    const blacklistResult = await blacklistResponse.json();
+                    if (!blacklistResult.status || !Array.isArray(blacklistResult.data)) throw new Error("Format data blacklist tidak valid.");
+
+                    // 2. Ambil IP pengguna saat ini
+                    let currentUserIp = 'Gagal mendapatkan IP Anda.';
+                    try {
+                        const ipResponse = await fetch('/api/my-ip');
+                        if (ipResponse.ok) { const ipResult = await ipResponse.json(); if (ipResult.status && ipResult.ip) currentUserIp = ipResult.ip; }
+                    } catch (ipError) { console.warn("Gagal mengambil IP pengguna:", ipError); }
+
+                    // 3. Format tampilan HTML
+                    let outputHtml = `<span class="user-ip-label">IP Anda Saat Ini:</span> <span class="user-ip-value">${currentUserIp}</span>\n<hr>\n`;
+                    outputHtml += `<span class="list-title">Daftar IP Diblokir (${blacklistResult.data.length}):</span>\n\n`;
+
+                    if (blacklistResult.data.length > 0) {
+                        // Escape HTML untuk setiap IP sebelum join
+                        outputHtml += blacklistResult.data.map(ip => String(ip).replace(/</g, "&lt;").replace(/>/g, "&gt;")).join('\n');
+                    } else {
+                        outputHtml += '<span class="empty-list">(Tidak ada IP yang diblokir saat ini)</span>';
+                    }
+
+                    respEl.innerHTML = outputHtml;
+                    respEl.classList.remove("d-none");
+                    copyRespBtn.classList.remove("d-none");
+                    copyRespBtn.innerHTML = '<i class="far fa-copy"></i> Copy List';
+                    retryBtn.classList.remove('d-none');
+
+                } catch (err) {
+                    console.error("Error fetchAndDisplayBlacklistInfo:", err);
+                    respEl.innerHTML = `Gagal memuat informasi:\n${err.message}`;
+                    respEl.classList.remove("d-none");
+                    respEl.classList.add('error-text'); // Tambahkan class error jika perlu
+                    copyRespBtn.classList.remove("d-none");
+                    copyRespBtn.innerHTML = '<i class="far fa-copy"></i> Copy Error';
+                    retryBtn.classList.remove('d-none');
+                    showNotification("Gagal memuat info blacklist.", "error");
+                } finally {
+                    loadEl.style.display = "none";
+                }
+            }
+            // +++ AKHIR FUNGSI BARU +++
+
+            // --- Event Listener Utama (DIMODIFIKASI untuk Retry Blacklist) ---
+            document.addEventListener("click", (e) => {
+              const playBtn = e.target.closest(".play-button:not(.btn-secondary):not(#continueBtn):not(#retryRequestBtn)"); if (playBtn && playBtn.closest('.api-card')) openApiModal(playBtn);
+              const copyUrlBtn = e.target.closest(".copy-section .copy-button"); if (copyUrlBtn) { const txt = document.getElementById("copyEndpointText")?.innerText; if(txt) copyToClipboard(txt, copyUrlBtn, "URL Copied!", true); }
+              const copyRespBtnEl = e.target.closest("#copyResponseBtn"); if (copyRespBtnEl) { const respEl = document.getElementById("apiResponseContent"); if (!respEl) return; let txt = ""; let fb = "Copied!"; const img = respEl.querySelector('img'); if (img) { txt = img.src; fb = "URL Copied!"; } else { txt = respEl.textContent || respEl.innerText; try { txt = JSON.stringify(JSON.parse(txt), null, 2); } catch(err){} } if (txt) copyToClipboard(txt, copyRespBtnEl, fb, false); else showNotification("No response.", "warning"); }
+              const closeBtn = e.target.closest(".btn-close"); const modalClicked = e.target.classList.contains('modal') ? e.target : null; const activeModal = closeBtn ? closeBtn.closest('.modal.active') : (modalClicked && modalClicked.classList.contains('active') ? modalClicked : null); if (activeModal) { if (closeBtn || (modalClicked && !modalClicked.querySelector('.modal-dialog').contains(e.target) && activeModal.id !== 'donationModal')) { activeModal.classList.remove('active'); if (activeModal.id === 'apiResponseModal') { const rEl=document.getElementById("apiResponseContent"); if(rEl){rEl.classList.add("d-none"); rEl.innerHTML = ""; rEl.className='d-none';} const fEl=document.getElementById("paramForm"); if(fEl) fEl.style.display = "block"; const sBtn=document.getElementById("submitParamBtn"); if(sBtn) sBtn.style.display = "none"; const cpS=activeModal.querySelector(".copy-section"); if(cpS) cpS.classList.remove("active"); const cpR=document.getElementById("copyResponseBtn"); if(cpR) cpR.classList.add("d-none"); const ld=document.getElementById("apiResponseLoading"); if(ld) ld.style.display = "none"; const rt=document.getElementById("retryRequestBtn"); if(rt) rt.classList.add('d-none'); lastFetchedUrl = ""; } if (activeModal.id === 'reportModal') { const rF=document.getElementById("reportForm"); if(rF) rF.reset(); const sRB=document.getElementById("submitReportBtn"); if(sRB) { sRB.disabled = false; sRB.innerHTML = '<i class="fa-solid fa-paper-plane"></i> Kirim';} } if (activeModal.id === 'donationModal' && !musicStarted) { tryStartMusic(); } } }
+              if (e.target.classList.contains("tab")) { document.querySelectorAll(".tab").forEach(t => t.classList.remove("active")); e.target.classList.add("active"); renderAPIs(e.target.dataset.tab); }
+
+              // Modifikasi handler tombol Retry
+              const retryBtn = e.target.closest("#retryRequestBtn");
+              if (retryBtn) {
+                    if (retryBtn.getAttribute('data-action') === 'fetchBlacklist') {
+                        fetchAndDisplayBlacklistInfo(); // Panggil fungsi blacklist lagi
+                    } else {
+                        // Logika retry untuk endpoint API biasa (kembali ke form)
+                        const formEl = document.getElementById("paramForm"); const submitBtnEl = document.getElementById("submitParamBtn"); const respEl = document.getElementById("apiResponseContent"); const copyRespBtnEl = document.getElementById("copyResponseBtn"); const loadEl = document.getElementById("apiResponseLoading");
+                        if(respEl) { respEl.innerHTML = ""; respEl.classList.add("d-none"); respEl.className='d-none';}
+                        if(copyRespBtnEl) copyRespBtnEl.classList.add("d-none");
+                        if(loadEl) loadEl.style.display = "none";
+                        retryBtn.classList.add('d-none');
+                        if(formEl) formEl.style.display = "block";
+                        if(submitBtnEl) submitBtnEl.style.display = "flex";
+                    }
+                }
+            }); // Akhir event listener click
+
+
+            // --- Submit Form Parameter ---
+            const submitParamBtn = document.getElementById("submitParamBtn"); if (submitParamBtn) submitParamBtn.addEventListener("click", submitParams);
+            function submitParams() { const form = document.getElementById("paramForm"); if(!form) return; const akInp = form.querySelector('input[name="apikey"]'); if (currentEndpointRequiresApiKey && akInp && !akInp.value.trim()) { showNotification("API Key required!", 'error'); akInp.focus(); return; } if (form.innerHTML && !form.checkValidity()) { const inv = form.querySelector(':invalid'); if (inv) inv.focus(); /* form.reportValidity(); */ return; } form.style.display = "none"; const sBtn = document.getElementById("submitParamBtn"); if(sBtn) sBtn.style.display = "none"; const rEl = document.getElementById("apiResponseContent"); if(rEl) {rEl.innerHTML = ""; rEl.classList.add("d-none");} const cpBtn = document.getElementById("copyResponseBtn"); if(cpBtn) cpBtn.classList.add("d-none"); const ldEl = document.getElementById("apiResponseLoading"); if(ldEl) ldEl.style.display = "block"; const rtBtn = document.getElementById("retryRequestBtn"); if(rtBtn) rtBtn.classList.add('d-none'); let finalURL; const basePath = currentEndpointPath.split("?")[0]; if (form.innerHTML) { const inputs = form.querySelectorAll("input"); const query = Array.from(inputs).filter(i=>i.value.trim()||i.required).map(i => `${encodeURIComponent(i.name)}=${encodeURIComponent(i.value)}`).join("&"); finalURL = `${basePath}${query?'?'+query:''}`; } else { finalURL = basePath; } lastFetchedUrl = finalURL; fetchAPI(finalURL); }
+
+
+            // --- Modal Laporan/Request ---
+            const reportModal = document.getElementById("reportModal"); const reportForm = document.getElementById("reportForm"); const aboutApiModal = document.getElementById("aboutApiModal"); const aboutApiBtn = document.getElementById("aboutApiBtn"); function openModal(modalId, title = null, typeVal = null) { const modal = document.getElementById(modalId); if(!modal) return; if(modalId === 'reportModal' && title && typeVal) { const mTitle = document.getElementById("reportModalTitle"); if(mTitle) mTitle.textContent = title; const rType = document.getElementById("reportType"); if(rType) rType.value = typeVal; const sBtn = document.getElementById("submitReportBtn"); if(sBtn) { sBtn.disabled = false; sBtn.innerHTML = '<i class="fa-solid fa-paper-plane"></i> Kirim';} if(reportForm) reportForm.reset(); } modal.classList.add("active"); }
+            const reportErrorBtn = document.getElementById("reportErrorBtn"); if(reportErrorBtn) reportErrorBtn.addEventListener("click", () => openModal("reportModal", "Lapor Error", "Lapor Error")); const requestFeatureBtn = document.getElementById("requestFeatureBtn"); if(requestFeatureBtn) requestFeatureBtn.addEventListener("click", () => openModal("reportModal", "Request Fitur", "Request Fitur")); if(aboutApiBtn) aboutApiBtn.addEventListener("click", () => openModal("aboutApiModal"));
+            if (reportForm) { reportForm.addEventListener("submit", async (e) => { e.preventDefault(); const reportType = document.getElementById("reportType")?.value; const nama = document.getElementById("reportName")?.value; const teks = document.getElementById("reportText")?.value; const submitBtn = document.getElementById("submitReportBtn"); if(!reportType || !teks || !teks.trim() || !submitBtn) { showNotification("Teks wajib diisi.", "error"); const ta = document.getElementById("reportText"); if(ta && !teks.trim()) ta.focus(); return; } submitBtn.disabled = true; submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Mengirim...'; const url = `/api/submit-report`; try { const response = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ reportType, nama:nama.trim(), teks:teks.trim() }) }); const result = await response.json(); if (!response.ok) throw new Error(result.error || `Error: ${response.status}`); showNotification(result.message || `${reportType} sent!`, 'success'); if(reportModal) reportModal.classList.remove("active"); } catch (err) { console.error("Report failed:", err); showNotification(err.message || "Failed.", 'error'); } finally { submitBtn.disabled = false; submitBtn.innerHTML = '<i class="fa-solid fa-paper-plane"></i> Kirim'; } }); }
+
+
+            // --- Search & Scroll Badge Listeners ---
+            const searchInput = document.getElementById('apiSearchInput'); if (searchInput) searchInput.addEventListener('input', filterApiCards);
+            const platformBadge = document.getElementById('apiPlatformBadge'); const contentSection = document.getElementById('apiContentSection'); if (platformBadge && contentSection) platformBadge.addEventListener('click', () => { contentSection.scrollIntoView({ behavior: 'smooth', block: 'start' }); });
+
+
+            // +++ Load Info Blacklist (Halaman Utama) +++
+            async function loadBlacklistInfo() {
+              const section = document.getElementById("blacklistSection");
+              const display = document.getElementById("blacklist-display");
+              if (!section || !display) { return; } // Hentikan jika elemen tidak ada
+              try {
+                const response = await fetch('/api/blacklist-info');
+                if (!response.ok) { let errorMsg = `Gagal load blacklist info. Status: ${response.status}`; try { const errData = await response.json(); errorMsg = errData.error || errorMsg; } catch {} throw new Error(errorMsg); }
+                const result = await response.json();
+                if (result.status && Array.isArray(result.data) && result.data.length > 0) {
+                  display.textContent = result.data.join('\n');
+                  display.style.textAlign = 'left';
+                  section.style.display = 'block'; // Tampilkan section
+                } else {
+                  section.style.display = 'none'; // Sembunyikan jika kosong
+                }
+              } catch (error) {
+                console.error("Error loadBlacklistInfo (halaman utama):", error);
+                // Jangan tampilkan section jika error di halaman utama
+                section.style.display = 'none';
+              }
+            }
+            loadBlacklistInfo(); // Panggil fungsi ini saat load
+
+
+            startStatusPolling(); // Mulai polling status API
+
+        }); // --- Akhir DOMContentLoaded ---
+    </script>
+</body>
+</html>

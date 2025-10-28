@@ -1,0 +1,581 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+    <title>Admin - Manajemen Blacklist IP</title>
+    <link rel="icon" href="/icon.png" type="image/png">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+    <style>
+        /* --- Variabel Warna & Dasar --- */
+        :root {
+            --primary: #6366f1; --primary-dark: #4f46e5; --danger: #ef4444; --danger-dark: #dc2626;
+            --success: #10b981; --success-dark: #059669; --warning: #f59e0b;
+            --light-bg: #f9fafb; --dark-bg: #111827; --card-bg-light: #ffffff; --card-bg-dark: #1f2937;
+            --text-light: #1f2937; --text-dark: #d1d5db; --text-muted-light: #6b7280; --text-muted-dark: #9ca3af;
+            --border-light: #e5e7eb; --border-dark: #374151; --input-bg-light: #fff; --input-bg-dark: #374151;
+            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            --transition: all 0.2s ease-in-out;
+        }
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            margin: 0; padding: 1.5rem; background-color: var(--light-bg); color: var(--text-light); line-height: 1.6; transition: var(--transition);
+        }
+        body.dark-mode { background-color: var(--dark-bg); color: var(--text-dark); }
+        .container { 
+            max-width: 800px; 
+            margin: 3rem auto; /* <-- PERUBAHAN: Dibuat lebih ke tengah */
+            background-color: var(--card-bg-light); 
+            padding: 2rem; 
+            border-radius: 12px; 
+            box-shadow: var(--shadow); 
+            border: 1px solid var(--border-light); 
+            transition: var(--transition); 
+        }
+        body.dark-mode .container { background-color: var(--card-bg-dark); border-color: var(--border-dark); }
+        h1, h2 { margin-top: 0; color: var(--primary); }
+        h1 { margin-bottom: 2rem; text-align: center; display: flex; align-items: center; justify-content: center; gap: 0.75rem; font-size: 1.8rem; }
+        h2 { margin-bottom: 1rem; border-bottom: 1px solid var(--border-light); padding-bottom: 0.6rem; font-size: 1.4rem; display: flex; align-items: center; gap: 0.5rem;}
+        body.dark-mode h2 { border-color: var(--border-dark); }
+
+        /* --- Input & Forms --- */
+        label { display: block; margin-bottom: 0.5rem; font-weight: 500; color: var(--text-muted-light); font-size: 0.9rem;}
+        body.dark-mode label { color: var(--text-muted-dark); }
+        input[type="text"], input[type="password"] {
+            width: 100%; padding: 0.8rem 1rem; border: 1px solid var(--border-light); border-radius: 6px; font-size: 1rem; margin-bottom: 1rem; background-color: var(--input-bg-light); color: var(--text-light); box-sizing: border-box; transition: var(--transition);
+        }
+        body.dark-mode input[type="text"], body.dark-mode input[type="password"] { border-color: var(--border-dark); background-color: var(--input-bg-dark); color: var(--text-dark); }
+        input::placeholder { color: var(--text-muted-light); opacity: 0.7;}
+        body.dark-mode input::placeholder { color: var(--text-muted-dark); }
+        input:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2); }
+        button {
+            background-color: var(--primary); color: white; border: none; padding: 0.75rem 1.25rem; border-radius: 6px; font-size: 0.95rem; cursor: pointer; transition: var(--transition); font-weight: 500; margin-right: 0.5rem; display: inline-flex; align-items: center; gap: 0.5rem; justify-content: center;
+        }
+        button:hover { background-color: var(--primary-dark); transform: translateY(-1px); box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        button:active { transform: translateY(0); }
+        button:disabled { background-color: #9ca3af; cursor: not-allowed; opacity: 0.7; transform: none; box-shadow: none; }
+        button .fa-spin { margin-right: 0.5rem; }
+        button.danger { background-color: var(--danger); }
+        button.danger:hover { background-color: var(--danger-dark); }
+        .form-group { display: flex; align-items: flex-end; gap: 0.5rem; margin-bottom: 1.5rem; }
+        .form-group input { margin-bottom: 0; flex-grow: 1; }
+        .form-group button { flex-shrink: 0; }
+
+        /* --- Blacklist Display --- */
+        #blacklistContainer { margin-top: 1.5rem; }
+        #ipList { list-style: none; padding: 0; max-height: 450px; overflow-y: auto; border: 1px solid var(--border-light); border-radius: 8px; margin-top: 0.5rem; }
+        body.dark-mode #ipList { border-color: var(--border-dark); }
+        #ipList li { display: flex; justify-content: space-between; align-items: center; padding: 0.75rem 1rem; border-bottom: 1px solid var(--border-light); background-color: var(--card-bg-light); transition: var(--transition); }
+        body.dark-mode #ipList li { border-color: var(--border-dark); background-color: var(--card-bg-dark); }
+        #ipList li:last-child { border-bottom: none; }
+        #ipList li:nth-child(even) { background-color: #f9fafb; } /* Zebra striping */
+        body.dark-mode #ipList li:nth-child(even) { background-color: #1a2332; } /* Dark zebra */
+        #ipList span { font-family: 'Roboto Mono', monospace; font-size: 0.95rem; word-break: break-all; color: var(--text-light); }
+        body.dark-mode #ipList span { color: var(--text-dark); }
+        #ipList button { padding: 0.4rem 0.8rem; font-size: 0.85rem; margin: 0; box-shadow: none; }
+        #ipList button .fa-solid { font-size: 0.8em; } /* Kecilkan ikon di tombol list */
+        #loadingMessage, #infoMessage { text-align: center; margin-top: 1.5rem; color: var(--text-muted-light); font-style: italic; }
+        body.dark-mode #loadingMessage, body.dark-mode #infoMessage { color: var(--text-muted-dark); }
+        #listCount { font-size: 0.9rem; color: var(--text-muted-light); text-align: right; margin-top: -0.8rem; margin-bottom: 0.5rem; }
+        body.dark-mode #listCount { color: var(--text-muted-dark); }
+
+        /* --- Notifikasi Toast (Smooth iPhone like) --- */
+        #notification {
+            position: fixed;
+            top: 20px; /* Jarak dari atas */
+            left: 50%;
+            transform: translateX(-50%) translateY(-150%); /* Mulai dari luar layar atas */
+            min-width: 280px;
+            max-width: 90%;
+            padding: 1rem 1.5rem;
+            border-radius: 10px;
+            background-color: var(--card-bg-dark); /* Default background (darkish) */
+            color: var(--text-dark);
+            text-align: center;
+            font-size: 0.95rem;
+            font-weight: 500;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            z-index: 1050;
+            transition: transform 0.4s cubic-bezier(0.25, 0.8, 0.25, 1), opacity 0.4s ease; /* Transisi smooth */
+            opacity: 0;
+            border: 1px solid var(--border-dark);
+            display: flex; align-items: center; gap: 0.75rem;
+        }
+        /* <-- PERUBAHAN DI SINI: Selector CSS diperbaiki --> */
+        body:not(.dark-mode) #notification { /* Style light mode */
+             background-color: var(--card-bg-light);
+             color: var(--text-light);
+             border: 1px solid var(--border-light);
+        }
+        #notification.show {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0); /* Muncul ke posisi akhir */
+        }
+        #notification.success { background-color: var(--success); color: white; border-color: var(--success-dark); }
+        #notification.error { background-color: var(--danger); color: white; border-color: var(--danger-dark); }
+        #notification.warning { background-color: var(--warning); color: var(--text-light); border-color: #d97706; }
+        #notification i { font-size: 1.2em; }
+
+        /* --- Theme Toggle Button --- */
+        #themeToggle { position: fixed; /* Ubah ke fixed */ top: 1rem; right: 1rem; background: var(--card-bg-light); border: 1px solid var(--border-light); color: var(--text-light); width: 44px; height: 44px; border-radius: 50%; cursor: pointer; font-size: 1.3rem; display: flex; align-items: center; justify-content: center; transition: var(--transition); box-shadow: var(--shadow); z-index: 100; }
+        body.dark-mode #themeToggle { background: var(--card-bg-dark); border-color: var(--border-dark); color: var(--text-dark); }
+        #themeToggle:hover { background-color: #f3f4f6; transform: scale(1.05); }
+        body.dark-mode #themeToggle:hover { background-color: #374151; }
+        #themeToggle .fa-sun { color: #f59e0b; }
+        #themeToggle .fa-moon { color: var(--primary); }
+
+         /* Responsive */
+         @media (max-width: 600px) {
+             body { padding: 1rem; }
+             .container { margin: 1.5rem auto; padding: 1.5rem; } /* <-- PERUBAHAN: margin diupdate */
+             h1 { font-size: 1.5rem; }
+             h2 { font-size: 1.2rem; }
+             .form-group { flex-direction: column; align-items: stretch; }
+             .form-group button { width: 100%; margin-top: 0.5rem; }
+             #ipList li { flex-direction: column; align-items: flex-start; gap: 0.5rem; }
+             #ipList button { align-self: flex-end; } /* Tombol hapus ke kanan */
+             #themeToggle { top: 0.5rem; right: 0.5rem; width: 40px; height: 40px; font-size: 1.1rem; }
+         }
+
+        /* --- TAMBAHAN: Style Modal Konfirmasi (iPhone-like) --- */
+        .modal-overlay {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100vw; height: 100vh;
+            background-color: rgba(0, 0, 0, 0.4);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+            opacity: 0;
+            transition: opacity 0.2s ease-out;
+            backdrop-filter: blur(2px);
+            /* Mulai dari non-display untuk JS */
+            display: none; 
+        }
+        .modal-overlay.show {
+            opacity: 1;
+        }
+        .modal-overlay.show .modal-dialog {
+            transform: scale(1);
+        }
+        /* Gunakan class .modal-dialog-confirm agar tidak bentrok */
+        .modal-dialog-confirm {
+            background-color: rgba(248, 248, 248, 0.95); /* iOS light blur */
+            color: #000;
+            border-radius: 14px;
+            padding: 0; /* Hapus padding, atur di child */
+            width: 270px; /* Lebar standar iOS Alert */
+            text-align: center;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            transform: scale(1.1);
+            transition: transform 0.2s cubic-bezier(0.25, 0.8, 0.25, 1);
+            overflow: hidden; /* Penting untuk border-radius */
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+        body.dark-mode .modal-dialog-confirm {
+            background-color: rgba(44, 44, 46, 0.95); /* iOS dark blur */
+            color: #fff;
+        }
+        .modal-dialog-confirm h3 {
+            font-size: 17px;
+            font-weight: 600;
+            padding: 20px 16px 4px 16px;
+            color: inherit;
+            margin: 0;
+            border-bottom: none; /* Hapus border bawaan H3 */
+        }
+        .modal-dialog-confirm p {
+            font-size: 13px;
+            padding: 0 16px 20px 16px;
+            margin: 0;
+            line-height: 1.4;
+            color: inherit;
+        }
+        .modal-buttons {
+            display: flex;
+            width: 100%;
+            border-top: 0.5px solid rgba(0, 0, 0, 0.3);
+        }
+        body.dark-mode .modal-buttons {
+            border-top-color: rgba(255, 255, 255, 0.3);
+        }
+        .modal-buttons button {
+            flex: 1;
+            background: transparent;
+            border: none;
+            border-left: 0.5px solid rgba(0, 0, 0, 0.3);
+            padding: 12px 10px;
+            font-size: 17px;
+            cursor: pointer;
+            color: #007aff; /* iOS blue */
+            margin: 0;
+            border-radius: 0;
+            font-weight: 400;
+            transition: background-color 0.1s ease;
+        }
+        .modal-buttons button:first-child {
+            border-left: none;
+        }
+        .modal-buttons button:hover {
+            background-color: rgba(0, 0, 0, 0.05);
+            transform: none; box-shadow: none;
+        }
+        body.dark-mode .modal-buttons button:hover {
+            background-color: rgba(255, 255, 255, 0.05);
+        }
+        .modal-buttons .modal-button-ok {
+            font-weight: 600; /* Tombol OK/Confirm bold */
+        }
+        body.dark-mode .modal-buttons button {
+            border-left-color: rgba(255, 255, 255, 0.3);
+            color: #0a84ff;
+        }
+        /* --- AKHIR CSS TAMBAHAN --- */
+    </style>
+</head>
+<body>
+    <button id="themeToggle" title="Toggle Light/Dark Mode"><i class="fa-solid fa-moon"></i></button>
+
+    <div id="notification">
+        <i id="notificationIcon" class="fa-solid"></i>
+        <span id="notificationMessage">Pesan notifikasi</span>
+    </div>
+
+    <div class="container">
+        <h1><i class="fa-solid fa-user-shield"></i> Admin Blacklist Manager</h1>
+
+        <section id="authSection">
+            <h2><i class="fa-solid fa-key"></i> Autentikasi</h2>
+            <label for="adminKey">Admin API Key:</label>
+            <input type="password" id="adminKey" placeholder="Masukkan kunci admin rahasia Anda..." autocomplete="off">
+            <p style="font-size: 0.8rem; color: var(--text-muted-light); margin-top: -0.5rem; margin-bottom: 1.5rem;">
+                Kunci ini diperlukan untuk melihat dan mengelola daftar blacklist.
+            </p>
+        </section>
+
+        <section id="addIpSection">
+            <h2><i class="fa-solid fa-user-plus"></i> Tambah IP ke Blacklist</h2>
+            <div class="form-group">
+                <input type="text" id="ipToAdd" placeholder="Masukkan IP Address (Contoh: 1.2.3.4 atau IPv6)">
+                <button id="addIpButton"><i class="fa-solid fa-plus"></i> Tambah</button>
+            </div>
+        </section>
+
+        <section id="blacklistContainer">
+            <h2><i class="fa-solid fa-list-ul"></i> Daftar IP Terblokir</h2>
+            <p id="listCount">Total: 0 IP</p>
+            <ul id="ipList">
+                </ul>
+            <p id="loadingMessage" style="display: none;"><i class="fa-solid fa-spinner fa-spin"></i> Memuat daftar...</p>
+            <p id="infoMessage" style="display: block;">Masukkan Admin Key untuk melihat daftar.</p> </section>
+    </div>
+
+    <div class="modal-overlay" id="confirmModalOverlay">
+        <div class="modal-dialog-confirm" id="confirmModalDialog">
+            <h3 id="confirmModalTitle">Judul Konfirmasi</h3>
+            <p id="confirmModalMessage">Pesan konfirmasi akan muncul di sini.</p>
+            <div class="modal-buttons">
+                <button id="confirmModalCancel" class="modal-button-cancel">Cancel</button>
+                <button id="confirmModalOK" class="modal-button-ok">OK</button>
+            </div>
+        </div>
+    </div>
+    <script>
+        // --- Ambil Referensi Elemen DOM ---
+        const adminKeyInput = document.getElementById('adminKey');
+        const ipToAddInput = document.getElementById('ipToAdd');
+        const addIpButton = document.getElementById('addIpButton');
+        const ipListUl = document.getElementById('ipList');
+        const loadingMessage = document.getElementById('loadingMessage');
+        const infoMessage = document.getElementById('infoMessage'); // Ganti errorMessage
+        const listCount = document.getElementById('listCount');
+        const themeToggle = document.getElementById('themeToggle');
+        const body = document.body;
+        const notification = document.getElementById('notification');
+        const notificationIcon = document.getElementById('notificationIcon');
+        const notificationMessage = document.getElementById('notificationMessage');
+        let notificationTimeout;
+
+        // --- Theme Toggler ---
+        function applyTheme(theme) {
+            body.classList.toggle('dark-mode', theme === 'dark');
+            // Ganti ikon sesuai tema
+            themeToggle.innerHTML = theme === 'dark' ? '<i class="fa-solid fa-sun"></i>' : '<i class="fa-solid fa-moon"></i>';
+            localStorage.setItem('adminTheme', theme); // Simpan preferensi
+        }
+        themeToggle.addEventListener('click', () => {
+            const newTheme = body.classList.contains('dark-mode') ? 'light' : 'dark';
+            applyTheme(newTheme);
+        });
+        // Terapkan tema saat load
+        applyTheme(localStorage.getItem('adminTheme') || (window.matchMedia?.('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'));
+
+
+        // --- Fungsi Notifikasi Toast ---
+        function showNotification(message, type = 'info', duration = 3000) {
+            clearTimeout(notificationTimeout); // Hapus timeout sebelumnya jika ada
+
+            notificationMessage.textContent = message;
+            // Reset class
+            notification.className = '';
+            notificationIcon.className = 'fa-solid'; // Reset ikon
+
+            // Tambah class berdasarkan tipe
+            if (type === 'success') {
+                notification.classList.add('success');
+                notificationIcon.classList.add('fa-check-circle');
+            } else if (type === 'error') {
+                notification.classList.add('error');
+                notificationIcon.classList.add('fa-exclamation-circle');
+            } else if (type === 'warning') {
+                notification.classList.add('warning');
+                notificationIcon.classList.add('fa-exclamation-triangle');
+            } else { // Info default
+                notification.classList.add('info'); // Buat style 'info' jika perlu
+                notificationIcon.classList.add('fa-info-circle');
+            }
+
+            notification.classList.add('show'); // Tampilkan notifikasi
+
+            // Sembunyikan otomatis setelah durasi
+            notificationTimeout = setTimeout(() => {
+                notification.classList.remove('show');
+            }, duration);
+        }
+
+        // --- Fungsi API Call (Menggunakan Fetch API) ---
+        async function apiCall(endpoint, method = 'GET', data = null) {
+            const adminKey = adminKeyInput.value.trim();
+            if (!adminKey) {
+                showNotification("Admin API Key wajib diisi!", 'error');
+                adminKeyInput.focus();
+                return null; // Gagal karena key kosong
+            }
+
+            // Tampilkan loading & nonaktifkan tombol
+            loadingMessage.style.display = 'block';
+            infoMessage.style.display = 'none'; // Sembunyikan pesan info
+            disableAllButtons(true);
+
+            // Bangun URL (termasuk query param untuk POST)
+            const url = endpoint + (method === 'POST' && data && data.ip ? `?ip=${encodeURIComponent(data.ip)}` : '');
+            const options = {
+                method: method,
+                headers: { 'X-Admin-Key': adminKey } // Kirim key di header
+                // Tidak ada body untuk GET atau POST ini
+            };
+
+            try {
+                const response = await fetch(url, options);
+                const result = await response.json(); // Coba parse JSON
+
+                if (!response.ok) { // Handle error status (4xx, 5xx)
+                    throw new Error(result.error || result.message || `Error ${response.status}: ${response.statusText}`);
+                }
+                // Jika sukses (status 2xx)
+                showNotification(result.message || `${method} ${endpoint} berhasil.`, 'success', 2000); // Tampilkan notif sukses singkat
+                return result; // Kembalikan hasil
+
+            } catch (error) {
+                console.error(`API Call Error (${method} ${url}):`, error);
+                // Tampilkan notifikasi error yang lebih jelas
+                showNotification(`Gagal: ${error.message}`, 'error', 4000);
+                return null; // Gagal
+            } finally {
+                // Selalu sembunyikan loading & aktifkan tombol
+                loadingMessage.style.display = 'none';
+                disableAllButtons(false);
+            }
+        }
+
+        // --- Muat Daftar Blacklist ---
+        async function loadBlacklist() {
+            // Hanya load jika key terisi
+            if (!adminKeyInput.value.trim()) {
+                 ipListUl.innerHTML = ''; // Kosongkan list
+                 infoMessage.textContent = 'Masukkan Admin Key untuk melihat daftar.';
+                 infoMessage.style.display = 'block';
+                 listCount.textContent = 'Total: - IP';
+                 return;
+            }
+
+            const result = await apiCall('/admin/list'); // Panggil API
+            ipListUl.innerHTML = ''; // Kosongkan list sebelum diisi ulang
+
+            if (result && result.status && Array.isArray(result.data)) {
+                listCount.textContent = `Total: ${result.data.length} IP`; // Update jumlah
+                if (result.data.length === 0) {
+                   infoMessage.textContent = 'Daftar blacklist saat ini kosong.';
+                   infoMessage.style.display = 'block';
+                } else {
+                   infoMessage.style.display = 'none'; // Sembunyikan pesan info
+                   result.data.forEach(ip => { // Loop data IP
+                        const li = document.createElement('li');
+                        li.innerHTML = `
+                            <span>${ip}</span>
+                            <button class="remove-btn danger" data-ip="${ip}" title="Hapus ${ip} dari blacklist">
+                                <i class="fa-solid fa-trash-can"></i> Hapus
+                            </button>
+                        `;
+                        ipListUl.appendChild(li); // Tambahkan ke daftar
+                    });
+                }
+            } else {
+                 // Gagal load (error sudah ditangani notifikasi oleh apiCall)
+                 listCount.textContent = 'Total: - IP';
+                 infoMessage.textContent = 'Gagal memuat daftar. Periksa Admin Key atau koneksi.';
+                 infoMessage.style.display = 'block';
+            }
+        }
+
+        // --- Tambah IP ke Blacklist ---
+        addIpButton.addEventListener('click', async () => {
+            const ip = ipToAddInput.value.trim();
+            if (!ip) {
+                showNotification("IP Address tidak boleh kosong.", 'warning');
+                ipToAddInput.focus();
+                return;
+            }
+            // Panggil API untuk menambah
+            const result = await apiCall('/admin/blacklist', 'POST', { ip });
+            if (result && result.status) { // Jika sukses
+                ipToAddInput.value = ''; // Kosongkan input
+                // Tidak perlu notifikasi sukses lagi karena apiCall sudah
+                loadBlacklist(); // Muat ulang daftar untuk menampilkan IP baru
+            }
+            // Jika gagal, notifikasi error sudah ditampilkan oleh apiCall
+        });
+        // Tambahkan event listener untuk Enter di input IP
+        ipToAddInput.addEventListener('keypress', (e) => {
+           if (e.key === 'Enter') {
+               e.preventDefault(); // Mencegah submit form (jika ada)
+               addIpButton.click(); // Trigger klik tombol tambah
+           }
+        });
+
+
+        // --- Hapus IP dari Blacklist (Gunakan Event Delegation) ---
+        ipListUl.addEventListener('click', async (e) => {
+            // Cek apakah yang diklik adalah tombol hapus atau ikon di dalamnya
+            const removeButton = e.target.closest('.remove-btn');
+            if (removeButton) {
+                const ip = removeButton.dataset.ip; // Ambil IP dari atribut data-ip
+                if (!ip) return;
+
+                // <-- PERUBAHAN: Menggunakan modal konfirmasi kustom -->
+                const confirmed = await showConfirm(
+                    'Konfirmasi Hapus',
+                    `Anda yakin ingin menghapus IP "${ip}" dari blacklist?`,
+                    'Hapus', // Teks tombol OK (merah)
+                    'Batal'  // Teks tombol Cancel
+                );
+
+                if (confirmed) {
+                // <-- AKHIR PERUBAHAN -->
+                    // Panggil API untuk menghapus
+                    const result = await apiCall('/admin/unblacklist', 'POST', { ip });
+                    if (result && result.status) { // Jika sukses
+                        // Tidak perlu notifikasi sukses lagi
+                        loadBlacklist(); // Muat ulang daftar untuk menghapus IP dari tampilan
+                    }
+                    // Jika gagal, notifikasi error sudah ditampilkan oleh apiCall
+                }
+            }
+        });
+
+        // --- Helper UI ---
+        function disableAllButtons(disabled) {
+           addIpButton.disabled = disabled;
+           const removeButtons = ipListUl.querySelectorAll('.remove-btn');
+           removeButtons.forEach(btn => btn.disabled = disabled);
+           // Tambahkan icon spinner ke tombol Add jika loading
+           if (disabled) {
+               addIpButton.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Menambah...';
+           } else {
+               addIpButton.innerHTML = '<i class="fa-solid fa-plus"></i> Tambah';
+           }
+        }
+
+        // --- Panggil loadBlacklist saat Admin Key diubah (setelah jeda - Debounce) ---
+        let debounceTimer;
+        adminKeyInput.addEventListener('input', () => {
+           clearTimeout(debounceTimer); // Hapus timer sebelumnya
+           debounceTimer = setTimeout(() => { // Set timer baru
+               loadBlacklist(); // Panggil loadBlacklist setelah user berhenti mengetik
+           }, 500); // Jeda 500ms
+        });
+
+        // --- Initial Load ---
+        // Biarkan pesan awal tampil, loadBlacklist akan dipanggil saat key dimasukkan
+        // loadBlacklist(); // Jangan panggil di awal
+
+        // --- TAMBAHAN JS: Logika Modal Konfirmasi iPhone Style ---
+        const confirmModalOverlay = document.getElementById('confirmModalOverlay');
+        const confirmModalTitle = document.getElementById('confirmModalTitle');
+        const confirmModalMessage = document.getElementById('confirmModalMessage');
+        const confirmModalCancel = document.getElementById('confirmModalCancel');
+        const confirmModalOK = document.getElementById('confirmModalOK');
+
+        function showConfirm(title, message, okText = 'OK', cancelText = 'Cancel') {
+            confirmModalTitle.textContent = title;
+            confirmModalMessage.textContent = message;
+            confirmModalOK.textContent = okText;
+            confirmModalCancel.textContent = cancelText;
+
+            // Atur style tombol (misal, tombol Hapus jadi merah)
+            if (okText.toLowerCase().includes('hapus') || okText.toLowerCase().includes('delete')) {
+                confirmModalOK.style.color = '#ff3b30'; // iOS destructive red
+                confirmModalOK.style.fontWeight = '600';
+                confirmModalCancel.style.fontWeight = '400';
+            } else {
+                confirmModalOK.style.color = '#007aff'; // iOS blue
+                // Cek dark mode untuk warna biru yang berbeda
+                if (body.classList.contains('dark-mode')) {
+                    confirmModalOK.style.color = '#0a84ff';
+                }
+                confirmModalOK.style.fontWeight = '600';
+                confirmModalCancel.style.fontWeight = '400';
+            }
+
+            confirmModalOverlay.style.display = 'flex';
+            setTimeout(() => {
+                confirmModalOverlay.classList.add('show');
+            }, 10); // Butuh delay singkat untuk transisi opacity
+
+            // Return promise
+            return new Promise((resolve) => {
+                // Hapus listener lama (penting!)
+                confirmModalOK.onclick = null;
+                confirmModalCancel.onclick = null;
+                confirmModalOverlay.onclick = null;
+
+                confirmModalOK.onclick = () => {
+                    closeConfirm();
+                    resolve(true); // User clicked OK
+                };
+                confirmModalCancel.onclick = () => {
+                    closeConfirm();
+                    resolve(false); // User clicked Cancel
+                };
+                // Jangan tutup saat klik overlay
+                // confirmModalOverlay.onclick = (e) => {
+                //     if (e.target === confirmModalOverlay) {
+                //         closeConfirm(); 
+                //         resolve(false);
+                //     }
+                // };
+            });
+        }
+
+        function closeConfirm() {
+            confirmModalOverlay.classList.remove('show');
+            setTimeout(() => {
+                confirmModalOverlay.style.display = 'none';
+            }, 200); // Sesuaikan dengan durasi transisi CSS (0.2s)
+        }
+        // --- AKHIR TAMBAHAN JS ---
+
+    </script>
+</body>
+</html>
