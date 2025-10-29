@@ -9,9 +9,10 @@ const fs = require('fs');
 const cors = require('cors');
 const path = require('path');
 const axios = require('axios'); // Dibutuhkan untuk Discord, IP Info & GitHub API
-const rateLimit = require('express-rate-limit'); // Dibutuhkan untuk keamanan
+const { Ratelimit } = require('@upstash/ratelimit'); // Rate Limiter Baru (Untuk Vercel)
+const { kv } = require('@vercel/kv'); // Vercel KV Client (Untuk Rate Limiter)
 
-console.log("LOG: Script index.js dimulai.");
+console.log("LOG: Script index.js (Vercel Mode) dimulai.");
 
 // Import file function.js (opsional)
 try {
@@ -27,12 +28,12 @@ try {
 }
 
 const app = express();
-// PERBAIKAN PORT PENTING UNTUK PTERODACTYL & Vercel/Platform Lain
-const PORT = process.env.SERVER_PORT || process.env.PORT || 8000;
-console.log(`LOG: Port yang akan digunakan: ${PORT}`);
+// PORT di Vercel diatur otomatis, tapi ini bagus untuk lokal
+const PORT = process.env.PORT || 8000;
+console.log(`LOG: Port lokal (jika digunakan): ${PORT}`);
 
 // Middleware Awal (Penting untuk proxy & parsing)
-app.enable("trust proxy"); // Penting jika di belakang proxy (Nginx, Cloudflare, Vercel)
+app.enable("trust proxy"); // WAJIB di Vercel untuk dapatkan IP asli
 app.set("json spaces", 2); // Format output JSON (indentasi 2 spasi)
 app.use(express.json()); // Parsing body JSON (untuk form laporan/admin)
 app.use(express.urlencoded({ extended: false })); // Parsing body form-urlencoded standar
@@ -44,10 +45,9 @@ const checkAdminKey = (req, res, next) => {
   const adminKey = req.headers['x-admin-key']; // Ambil kunci dari header 'X-Admin-Key'
   const { ADMIN_API_KEY } = process.env; // Ambil kunci rahasia dari environment
 
-  // Periksa apakah ADMIN_API_KEY sudah di-set di .env
+  // Periksa apakah ADMIN_API_KEY sudah di-set di .env/Vercel Env Vars
   if (!ADMIN_API_KEY) {
-    console.error(chalk.red("FATAL: ADMIN_API_KEY tidak diatur di file .env!"));
-    // Jangan bocorkan detail error ke client
+    console.error(chalk.red("FATAL: ADMIN_API_KEY tidak diatur di environment variables!"));
     return res.status(500).json({ status: false, error: "Konfigurasi server admin error." });
   }
 
@@ -57,126 +57,92 @@ const checkAdminKey = (req, res, next) => {
     return res.status(403).json({ status: false, error: "Akses ditolak. Kunci admin tidak valid atau tidak disertakan." });
   }
 
-  // Jika kunci valid, lanjutkan ke handler rute admin berikutnya
-  // console.log(chalk.gray(`ADMIN: Akses admin DIIZINKAN untuk IP: ${req.ip} ke ${req.path}`)); // Kurangi log
+  // Jika kunci valid, lanjutkan
   next();
 };
 console.log(chalk.green("LOG: Middleware Admin (checkAdminKey) dimuat."));
 // --- Akhir Middleware Otentikasi Admin ---
 
 
-// --- Logika Blacklist IP (Baca dari GitHub) ---
-global.blacklistedIPs = new Set(); // Inisialisasi Set kosong di memori global
+// --- Logika Blacklist IP (Adaptasi Vercel: Fetch per Request) ---
 const BLACKLIST_URL = process.env.GITHUB_BLACKLIST_URL; // URL file JSON raw di GitHub
 
 /**
- * Mengambil daftar IP blacklist dari URL di .env (GITHUB_BLACKLIST_URL).
- * Memperbarui `global.blacklistedIPs` jika ada perubahan.
+ * Mengambil daftar IP blacklist dari GitHub dan MENGEMBALIKAN Set.
+ * Tidak menyimpan state di global. Dijalankan per request yang perlu cek blacklist.
+ * @returns {Promise<Set<string>>} Set berisi IP yang diblokir.
  */
-async function fetchBlacklist() {
+async function fetchBlacklistAndReturnSet() {
   if (!BLACKLIST_URL) {
-    console.warn(chalk.yellow("PERINGATAN: GITHUB_BLACKLIST_URL tidak diatur di .env. Fitur blacklist (read-only) dilewati."));
-    return;
+    console.warn(chalk.yellow("BLACKLIST: GITHUB_BLACKLIST_URL tidak diatur. Tidak ada IP yang diblokir."));
+    return new Set(); // Kembalikan Set kosong jika URL tidak ada
   }
-  // console.log(chalk.cyan("BLACKLIST: Mengambil daftar IP terblokir dari GitHub...")); // Opsional: Kurangi log berulang
+  // console.log(chalk.cyan("BLACKLIST: Fetching list from GitHub...")); // Terlalu berisik
   try {
     const response = await axios.get(BLACKLIST_URL, {
-      timeout: 10000, // Timeout 10 detik
-      // Header untuk mencoba bypass cache
-      headers: { 'Cache-Control': 'no-cache', 'Pragma': 'no-cache', 'Expires': '0' }
+      timeout: 7000, // Timeout 7 detik (sesuaikan jika perlu)
+      headers: { 'Cache-Control': 'no-cache', 'Pragma': 'no-cache', 'Expires': '0' } // Paksa ambil baru
     });
-
-    // Validasi respons adalah array
     if (Array.isArray(response.data)) {
-      // Filter hanya string yang tidak kosong, lalu buat Set baru
-      const newBlacklist = new Set(response.data.filter(ip => typeof ip === 'string' && ip.trim()));
-
-      // Bandingkan Set baru dengan yang lama untuk mendeteksi perubahan
-      const changed = newBlacklist.size !== global.blacklistedIPs.size || ![...newBlacklist].every(ip => global.blacklistedIPs.has(ip));
-
-      if (changed) {
-        global.blacklistedIPs = newBlacklist; // Update global Set
-        console.log(chalk.green(`BLACKLIST: Berhasil dimuat/diupdate dari GitHub. Total ${global.blacklistedIPs.size} IP diblokir.`));
-      } else {
-        // console.log(chalk.gray(`BLACKLIST: Daftar IP tidak berubah (${global.blacklistedIPs.size} IP).`)); // Opsional log jika tidak berubah
-      }
+      // Filter hanya string valid dan buat Set
+      const blacklistSet = new Set(response.data.filter(ip => typeof ip === 'string' && ip.trim()));
+      // console.log(chalk.green(`BLACKLIST: Fetched ${blacklistSet.size} IPs.`)); // Opsional
+      return blacklistSet;
     } else {
-      // Log error jika format data tidak sesuai
-      console.error(chalk.red("BLACKLIST: Format data dari URL salah. Harus berupa array JSON string. Data diterima:"), response.data);
+      console.error(chalk.red("BLACKLIST: Format data dari URL salah. Mengembalikan Set kosong."), response.data);
+      return new Set(); // Kembalikan Set kosong jika format salah
     }
   } catch (error) {
-    // Log error jika gagal mengambil dari GitHub
-    console.error(chalk.red(`BLACKLIST: Gagal mengambil daftar IP dari ${BLACKLIST_URL}: ${error.message}`));
+    console.error(chalk.red(`BLACKLIST: Gagal mengambil daftar IP: ${error.message}. Mengembalikan Set kosong.`));
+    return new Set(); // Kembalikan Set kosong jika fetch gagal
   }
 }
 
-// Middleware Pemeriksa Blacklist (Jalankan SEBELUM static files & rate limiter)
-// Memblokir akses ke SEMUA resource jika IP ada di blacklist, kecuali endpoint admin & info.
-app.use((req, res, next) => {
-  // Izinkan endpoint admin, info blacklist, dan my-ip untuk selalu bisa diakses
-  const allowedPaths = ['/api/blacklist-info', '/api/my-ip', '/manage-blacklist']; // Tambah halaman admin
+// Middleware Pemeriksa Blacklist (VERCEL VERSION - Async Fetch per Request)
+// Dijalankan SETELAH auth admin, SEBELUM static files & rate limiter
+app.use(async (req, res, next) => {
+  // Path yang dilewati pemeriksaan blacklist
+  const allowedPaths = ['/api/blacklist-info', '/api/my-ip', '/manage-blacklist'];
   if (req.path.startsWith('/admin/') || allowedPaths.includes(req.path)) {
-    return next(); // Lewati pemeriksaan jika path diizinkan
+    return next(); // Lewati pemeriksaan jika admin atau path info
   }
 
-  const userIP = req.ip; // Express `req.ip` sudah menghandle 'trust proxy'
-  if (global.blacklistedIPs.has(userIP)) {
-    // Log pemblokiran
+  // Ambil daftar blacklist terbaru SETIAP request (kecuali yang di-skip)
+  const currentBlacklist = await fetchBlacklistAndReturnSet();
+  const userIP = req.ip; // IP asli dari 'trust proxy'
+
+  if (currentBlacklist.has(userIP)) {
     console.warn(chalk.bgRed.white.bold(` BLOKIR: Akses ditolak untuk IP ${userIP} (blacklist). Path: ${req.originalUrl || req.path} `));
-    // Kirim respons HTML blokir ke user
+    // Kirim respons HTML blokir
     res.status(403).send(`<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>403 Forbidden</title><style>body{background:#0a0a0a;color:#e0e0e0;font-family:'Courier New',Courier,monospace;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0;padding:1rem;text-align:center}.container{max-width:600px;border:1px solid #ff4141;background:rgba(26,26,26,0.9);padding:2rem;border-radius:8px;box-shadow:0 0 30px rgba(255,65,65,0.3)}h1{color:#ff4141;margin-bottom:1rem;font-size:1.8rem}p{font-size:1rem;margin-bottom:1.5rem}pre{color:#ffab70;background:#1a1a1a;padding:0.5rem 1rem;border-radius:4px;display:inline-block;border:1px solid #333}</style></head><body><div class="container"><h1>[ ACCESS DENIED ]</h1><p>Akses dari alamat IP Anda telah diblokir secara permanen.</p><pre>IP Address: ${userIP}</pre></div></body></html>`);
-    return; // Hentikan pemrosesan request lebih lanjut
+    return; // Hentikan request
   }
-  next(); // Lanjutkan jika IP tidak diblokir
+  next(); // Lanjutkan jika IP tidak ada di blacklist
 });
-console.log(chalk.green("LOG: Middleware Pemeriksa Blacklist dimuat."));
+console.log(chalk.green("LOG: Middleware Pemeriksa Blacklist (Vercel Fetch-per-Request) dimuat."));
 // --- Akhir Logika Blacklist IP ---
 
 
-// Static file serving (Menyajikan file HTML, CSS, JS, Gambar, Audio dari folder publik)
-// Harus setelah middleware blacklist agar file statis juga diblokir jika IP diblacklist
-app.use('/', express.static(path.join(__dirname, '/'))); // Sajikan file dari root (misal favicon.ico)
-app.use('/', express.static(path.join(__dirname, 'api-page'))); // Sajikan index.html, admin.html, css, js frontend
-// Jika Anda punya aset frontend di folder 'src', aktifkan baris ini:
-// app.use('/src', express.static(path.join(__dirname, 'src')));
-app.use('/images', express.static(path.join(__dirname, 'images'))); // Sajikan gambar
-app.use('/audio', express.static(path.join(__dirname, 'audio'))); // Sajikan audio
+// Static file serving
+// Di Vercel, ini mungkin tidak terlalu diperlukan jika Anda define 'public' di vercel.json, tapi tidak masalah ada
+app.use('/', express.static(path.join(__dirname, '/')));
+app.use('/', express.static(path.join(__dirname, 'api-page'))); // Folder frontend utama
+app.use('/images', express.static(path.join(__dirname, 'images')));
+app.use('/audio', express.static(path.join(__dirname, 'audio')));
 console.log("LOG: Penyajian file statis dikonfigurasi.");
 
-// Load settings.json (Konfigurasi API, endpoint, dll)
+// Load settings.json (Ini aman karena bagian dari build)
 const settingsPath = path.join(__dirname, './settings.json');
-let settings = {}; // Akan diisi dari file
-global.endpointStatus = {}; // Status endpoint (Active, Error, Maintenance)
+let settings = {};
+// global.endpointStatus Dihapus dari sini
 try {
   console.log("LOG: Mencoba membaca settings.json...");
   const settingsData = fs.readFileSync(settingsPath, 'utf-8');
   settings = JSON.parse(settingsData);
-  global.settings = settings; // Simpan ke global untuk akses mudah
-
-  // Inisialisasi status endpoint dari settings.json
-  console.log("LOG: Menginisialisasi status endpoint...");
-  for (const category in settings.endpoints) {
-    if (Array.isArray(settings.endpoints[category])) {
-        settings.endpoints[category].forEach(endpoint => {
-            if (endpoint && endpoint.path && typeof endpoint.path === 'string') { // Validasi lebih ketat
-                const basePath = endpoint.path.split('?')[0]; // Ambil path dasar
-                // Set status awal dari file (default 'Active' jika tidak ada atau invalid)
-                const validStatus = ['Active', 'Maintenance', 'Beta', 'Error'].includes(endpoint.status) ? endpoint.status : 'Active';
-                global.endpointStatus[basePath] = validStatus;
-            } else {
-               console.warn(chalk.yellow(`PERINGATAN: Definisi endpoint tidak valid atau path kosong ditemukan di kategori '${category}'. Item:`, endpoint));
-            }
-        });
-    }
-  }
-  console.log("LOG: settings.json berhasil dibaca dan status endpoint diinisialisasi.");
-
-  // Panggil fetchBlacklist saat start & set interval untuk refresh
-  fetchBlacklist(); // Ambil blacklist saat server start
-  const blacklistRefreshInterval = 15 * 60 * 1000; // Refresh setiap 15 menit (dalam milidetik)
-  setInterval(fetchBlacklist, blacklistRefreshInterval);
-  console.log(`LOG: Blacklist akan di-refresh dari GitHub setiap ${blacklistRefreshInterval / 60000} menit.`);
-
+  global.settings = settings; // Settings masih bisa disimpan global karena dibaca saat init
+  console.log("LOG: settings.json berhasil dibaca.");
+  // Tidak ada lagi inisialisasi endpointStatus di sini
+  // Tidak ada lagi setInterval fetchBlacklist
 } catch (err) {
   // Tangani error jika file tidak ada, tidak bisa dibaca, atau JSON tidak valid
   console.error(chalk.red(`FATAL ERROR: Gagal memuat atau parse settings.json: ${err.message}`));
@@ -184,10 +150,10 @@ try {
   process.exit(1); // Hentikan server jika settings gagal dimuat
 }
 
-// Inisialisasi variabel global lainnya
-global.apikey = Array.isArray(settings.apikey) ? settings.apikey : []; // Pastikan selalu array
-global.totalreq = 0; // Penghitung total request
-console.log(`LOG: Variabel global (apikey: ${global.apikey.length} keys, totalreq) diinisialisasi.`);
+// Inisialisasi variabel global (Hanya API Key)
+global.apikey = Array.isArray(settings.apikey) ? settings.apikey : [];
+// global.totalreq Dihapus
+console.log(`LOG: Variabel global (apikey: ${global.apikey.length} keys) diinisialisasi.`);
 
 // --- Pusat Kontrol Notifikasi Discord (TERMASUK blacklist_action) ---
 const WEBHOOK_URLS = {
@@ -350,7 +316,7 @@ app.use((req, res, next) => {
   const logThisRequest = !(isStaticAsset && req.method === 'GET' && Object.keys(req.query).length === 0);
 
   if (logThisRequest) { console.log(chalk.bgHex('#E0E0E0').hex('#333').bold(` > ${req.method} ${req.originalUrl || req.path} `) + chalk.gray(`(IP: ${req.ip})`)); }
-  global.totalreq++;
+  // global.totalreq Dihapus
 
   // Modifikasi res.json
   const originalJson = res.json;
@@ -367,7 +333,7 @@ app.use((req, res, next) => {
       if (logThisRequest && res.statusCode !== 404 && res.statusCode !== 429) {
            const duration = Date.now() - start;
            sendDiscordAlert('activity', { ip: req.ip, method: req.method, endpoint: req.originalUrl || req.path, statusCode: res.statusCode, userAgent: req.headers['user-agent'], apiKeyUsed: !!(req.query.apikey || req.headers['x-api-key']), duration: duration });
-           const durationText = `${duration}ms`; const durationColor = duration > 2000 ? chalk.red : (duration > 500 ? chalk.yellow : chalk.green);
+           const durationText = `${duration}ms`; const durationColor = duration > 4000 ? chalk.red : (duration > 1000 ? chalk.yellow : chalk.green); // Sesuaikan threshold Vercel
            const statusText = `${res.statusCode}`; const statusColor = res.statusCode >= 500 ? chalk.bgRed.white.bold : (res.statusCode >= 400 ? chalk.bgYellow.black.bold : chalk.bgGreen.black.bold);
            console.log(chalk.gray(` < Respon ${statusColor(` ${statusText} `)} dalam ${durationColor(durationText)}`));
       }
@@ -378,7 +344,7 @@ console.log("LOG: Middleware response JSON & Activity Log dimuat.");
 // --- Akhir Middleware Log Request ---
 
 
-// --- Logika Keamanan (Rate Limit & IP Info) ---
+// --- Logika Keamanan (Rate Limiter Vercel KV) ---
 async function getIpInfo(ip) {
     let cleanIp = ip;
     const isPrivate = /^(::f{4}:)?(10\.|192\.168\.|172\.(1[6-9]|2[0-9]|3[0-1])\.|127\.|localhost|::1)/.test(ip);
@@ -401,26 +367,53 @@ const limitHandler = async (req, res /*, options */) => {
     res.status(429).send(`<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>429 Too Many Requests</title><style>@import url('https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;700&display=swap');body{background:#0a0a0a;color:#e0e0e0;font-family:'Roboto Mono','Courier New',Courier,monospace;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0;padding:1rem;text-align:center;}.container{max-width:700px;width:100%;border:1px solid #ffab70;background:rgba(26,26,26,0.9);padding:1.5rem 2rem;border-radius:8px;box-shadow:0 0 30px rgba(255,171,112,0.3);animation:fadeIn .5s ease;}@keyframes fadeIn{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:translateY(0);}}h1{color:#ffab70;font-size:1.5rem;text-transform:uppercase;letter-spacing:2px;margin-top:0;margin-bottom:1.5rem;}pre{background:#0a0a0a;border:1px solid #444;padding:1rem;border-radius:4px;white-space:pre-wrap;word-wrap:break-word;font-size:.9rem;line-height:1.6;text-align:left;margin-bottom:1.5rem;}.key{color:#88d7ff;font-weight:700;}.value{color:#ffab70;}.comment{color:#505050;display:block;margin-top:.5em;}.info{margin-top:1.5rem;font-size:.8rem;color:#888;}</style></head><body><div class="container"><h1>[ Rate Limit Exceeded ]</h1><pre><span class="key">STATUS</span>   : <span class="value">ACCESS TEMPORARILY BLOCKED (Code: 429)</span>\n<span class="key">REASON</span>   : <span class="value">Too Many Requests.</span>\n<span class="comment">// Anda mengirim terlalu banyak request dalam waktu singkat.</span>\n\n<span class="key">YOUR_IP</span>  : <span class="value">${ip||'Unavailable'}</span>\n<span class="key">DETAILS</span>  :\n  <span class="key">Country</span>  : <span class="value">${ipInfo?.country||'N/A'}</span>\n  <span class="key">City</span>     : <span class="value">${ipInfo?.city||'N/A'}</span>\n  <span class="key">ISP</span>      : <span class="value">${ipInfo?.isp||'N/A'}</span>\n\n<span class="comment">// Aktivitas Anda telah dicatat. Silakan coba lagi setelah beberapa saat.</span></pre><p class="info">Jika Anda merasa ini adalah kesalahan, hubungi administrator.</p></div></body></html>`);
 };
 
-const apiLimiter = rateLimit({
-    windowMs: 1 * 60 * 1000,
-    limit: process.env.RATE_LIMIT_PER_MINUTE || 30,
-    handler: limitHandler,
-    standardHeaders: 'draft-7', legacyHeaders: false,
-    message: { status: false, error: "Terlalu banyak request, coba lagi setelah 1 menit." },
-    keyGenerator: (req, res) => req.ip,
-    skip: (req, res) => {
-        const path = req.path;
-        const skippedPaths = [ '/', '/api/endpoint-status', '/api/submit-report', '/api/blacklist-info', '/api/my-ip', '/manage-blacklist' ];
-        const isStaticAsset = /\.(html|css|js|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot|map|mp3|json|txt)$/i.test(path) || path === '/favicon.ico';
-        return skippedPaths.includes(path) || isStaticAsset;
-    }
+// Inisialisasi Rate Limiter dengan Vercel KV
+const ratelimit = kv
+  ? new Ratelimit({
+      redis: kv,
+      limiter: Ratelimit.slidingWindow(
+          parseInt(process.env.RATE_LIMIT_PER_MINUTE || "30"), "60 s"
+      ),
+      analytics: true,
+      prefix: process.env.RATELIMIT_KV_PREFIX || "ratelimit_api",
+      ephemeralCache: new Map(),
+    })
+  : null;
+
+if (!ratelimit) { console.warn(chalk.yellow("PERINGATAN: Vercel KV tidak terkonfigurasi. Rate limiting dilewati!")); }
+
+// Middleware Rate Limiter Baru
+app.use(async (req, res, next) => {
+    if (!ratelimit) return next(); // Lewati jika tidak aktif
+    const path = req.path;
+    const skippedPaths = [ '/', '/api/endpoint-status', '/api/submit-report', '/api/blacklist-info', '/api/my-ip', '/manage-blacklist' ];
+    const isStaticAsset = /\.(html|css|js|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot|map|mp3|json|txt)$/i.test(path) || path === '/favicon.ico';
+    const isAdminApi = path.startsWith('/admin/'); // API Admin tetap di-rate limit
+
+    if (skippedPaths.includes(path) || isStaticAsset) { return next(); }
+
+    const ip = req.ip ?? "127.0.0.1";
+    try {
+        const { success, limit, remaining, reset } = await ratelimit.limit(`ip:${ip}`);
+        res.setHeader('RateLimit-Limit', limit.toString());
+        res.setHeader('RateLimit-Remaining', remaining.toString());
+        res.setHeader('RateLimit-Reset', Math.floor(reset / 1000).toString());
+
+        if (!success) {
+            const delta = Math.max(0, Math.ceil((reset - Date.now()) / 1000));
+            res.setHeader('Retry-After', delta.toString());
+            await limitHandler(req, res);
+            // Tidak perlu next() karena response sudah dikirim
+        } else {
+            next();
+        }
+    } catch (error) { console.error(chalk.red("RATE LIMITER ERROR:"), error); next(); } // Loloskan jika error
 });
-app.use(apiLimiter);
-console.log(chalk.bgHex('#FFD700').hex('#333').bold(`LOG: Middleware Keamanan (Rate Limiter: ${process.env.RATE_LIMIT_PER_MINUTE || 30}/menit) dimuat.`));
+if (ratelimit) { console.log(chalk.bgHex('#FFD700').hex('#333').bold(`LOG: Middleware Keamanan (Rate Limiter Vercel KV: ${process.env.RATE_LIMIT_PER_MINUTE || 30}/menit) dimuat.`)); }
 // --- Akhir Logika Keamanan ---
 
 
-// --- Middleware API Key (FINAL REVISED LOGIC + INJECTION FOR PUBLIC) ---
+// --- Middleware API Key (Inject Key for Public) ---
 console.log("LOG: Memuat middleware API Key global (Injects key for public routes if missing)...");
 app.use((req, res, next) => {
   const reqPath = req.path;
@@ -580,21 +573,37 @@ app.get('/', (req, res) => {
 });
 console.log("LOG: Rute default '/' untuk frontend dikonfigurasi.");
 
-app.get('/api/endpoint-status', (req, res) => { res.json({ data: { ...(global.endpointStatus || {}) } }); });
-console.log("LOG: Rute '/api/endpoint-status' dikonfigurasi.");
+app.get('/api/endpoint-status', (req, res) => {
+    // Kembalikan status dari settings.json (lebih reliable di Vercel)
+    let staticStatus = {};
+     try {
+         for (const category in global.settings.endpoints) {
+            if (Array.isArray(global.settings.endpoints[category])) {
+                global.settings.endpoints[category].forEach(endpoint => {
+                    if (endpoint && endpoint.path) {
+                        const basePath = endpoint.path.split('?')[0];
+                        staticStatus[basePath] = endpoint.status || 'Active';
+                    }
+                });
+            }
+         }
+     } catch (e) { console.error("Error reading status from settings in /api/endpoint-status:", e); }
+    res.json({ data: staticStatus });
+});
+console.log("LOG: Rute '/api/endpoint-status' dikonfigurasi (mengembalikan status dari settings.json).");
 
-app.get('/api/blacklist-info', (req, res) => {
+app.get('/api/blacklist-info', async (req, res) => { // Buat jadi async
   try {
-    const currentBlacklist = global.blacklistedIPs || new Set();
+    const currentBlacklist = await fetchBlacklistAndReturnSet(); // Ambil data terbaru
     const maskedIPs = Array.from(currentBlacklist).map(ip => {
-      if (typeof ip !== 'string') return 'invalid_entry';
-      if (ip.includes(':')) { const parts = ip.split(':'); return parts.length > 3 ? parts.slice(0, 3).join(':') + ':xxxx:...' : ip; }
-      else { const parts = ip.split('.'); return parts.length === 4 ? parts.slice(0, 3).join('.') + '.xxx' : ip; }
+        if (typeof ip !== 'string') return 'invalid_entry';
+        if (ip.includes(':')) { const parts = ip.split(':'); return parts.length > 3 ? parts.slice(0, 3).join(':') + ':xxxx:...' : ip; }
+        else { const parts = ip.split('.'); return parts.length === 4 ? parts.slice(0, 3).join('.') + '.xxx' : ip; }
     }).filter(ip => ip !== 'invalid_entry');
     res.status(200).json({ status: true, count: maskedIPs.length, data: maskedIPs });
   } catch (error) { console.error(chalk.red(`Error di /api/blacklist-info: ${error.message}`), error); res.status(500).json({ status: false, error: 'Gagal memproses daftar blacklist.' }); }
 });
-console.log(chalk.green("LOG: Rute '/api/blacklist-info' dikonfigurasi."));
+console.log(chalk.green("LOG: Rute '/api/blacklist-info' dikonfigurasi (fetch terbaru)."));
 
 app.get('/api/my-ip', (req, res) => { res.status(200).json({ status: true, ip: req.ip }); });
 console.log(chalk.green("LOG: Rute '/api/my-ip' dikonfigurasi."));
@@ -615,13 +624,10 @@ app.use((req, res, next) => {
     if (!/\.(css|js|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot|map|mp3|json|txt|html)$/i.test(req.path) && req.path !== '/favicon.ico') { console.warn(chalk.yellow(`404 Not Found: ${req.method} ${req.originalUrl} (IP: ${req.ip})`)); }
     const fourOhFourPath = path.join(__dirname, 'api-page', '404.html');
     res.status(404).sendFile(fourOhFourPath, (err) => {
-        if (err) { // Jika file 404.html tidak ada, kirim teks biasa
-            // Coba kirim dari root jika ada
+        if (err) {
              const fallbackPath = path.join(__dirname, '404.html');
              res.sendFile(fallbackPath, (fallbackErr) => {
-                 if (fallbackErr) {
-                     res.type('text/plain').send('404 Not Found');
-                 }
+                 if (fallbackErr) { res.type('text/plain').send('404 Not Found'); }
              });
         }
     });
@@ -635,24 +641,20 @@ app.use((err, req, res, next) => {
     console.error(chalk.red(`Request: ${req.method} ${req.originalUrl} (IP: ${req.ip})`));
     console.error(err.stack || err.message || err);
 
-    try {
-        const endpointPath = req.originalUrl || req.path; const basePath = endpointPath.split('?')[0];
-        if (global.endpointStatus && global.endpointStatus[basePath] !== undefined && global.endpointStatus[basePath] !== 'Error') { global.endpointStatus[basePath] = 'Error'; console.log(chalk.yellow(` -> Status endpoint ${basePath} diubah menjadi 'Error'`)); }
-    } catch (statusError) { console.error(chalk.red(" -> Error saat mencoba update status endpoint:"), statusError); }
-
+    // Kirim notifikasi Discord
     sendDiscordAlert('error', { ip: req.ip, endpoint: req.originalUrl || req.path, errorMessage: err.message || 'Internal Server Error' });
+
+    // Jangan coba update status endpoint di Vercel
 
     if (res.headersSent) { console.error(chalk.red(" -> Headers sudah terkirim, tidak bisa mengirim respons error 500.")); return next(err); }
 
+    // Kirim respons 500
     const fiveHundredPath = path.join(__dirname, 'api-page', '500.html');
     res.status(500).sendFile(fiveHundredPath, (fileErr) => {
-        if (fileErr) { // Jika file 500.html tidak ada, kirim teks biasa
-             // Coba kirim dari root jika ada
+        if (fileErr) {
              const fallbackPath500 = path.join(__dirname, '500.html');
              res.sendFile(fallbackPath500, (fallbackErr) => {
-                 if (fallbackErr) {
-                     res.type('text/plain').send('500 Internal Server Error');
-                 }
+                 if (fallbackErr) { res.type('text/plain').send('500 Internal Server Error'); }
              });
         }
     });
@@ -661,38 +663,42 @@ console.log("LOG: Handler 500 (Internal Server Error) dikonfigurasi.");
 // --- Akhir Error Handlers ---
 
 
-// --- Start Server ---
-console.log("LOG: Mencoba menjalankan server Express...");
-const server = app.listen(PORT, '0.0.0.0', () => {
-    const address = server.address();
-    if (!address) { console.error(chalk.red.bold(`FATAL: Gagal mendapatkan address server setelah listen di port ${PORT}.`)); process.exit(1); }
-    const actualPort = address.port;
-    // Tentukan protokol berdasarkan NODE_ENV
-    const protocol = (process.env.NODE_ENV === 'production' ? 'https' : 'http');
-    const hostnameSetting = global.settings?.publicAddress;
-    const displayHostname = (hostnameSetting && hostnameSetting !== '0.0.0.0') ? hostnameSetting : 'localhost';
-    const portString = (protocol === 'http' && actualPort === 80) || (protocol === 'https' && actualPort === 443) ? '' : `:${actualPort}`;
-    const accessibleUrl = `${protocol}://${displayHostname}${portString}`;
-    const localUrl = `http://localhost:${actualPort}`;
-    const networkIp = '0.0.0.0';
+// --- Start Server (Disesuaikan untuk Vercel) ---
+// Vercel akan menangani listening secara otomatis di production
+if (process.env.NODE_ENV !== 'production' && !process.env.VERCEL) { // Cek juga VERCEL env var
+    console.log("LOG: Menjalankan server Express untuk development lokal...");
+    const server = app.listen(PORT, '0.0.0.0', () => {
+        const address = server.address();
+        if (!address) { console.error(chalk.red.bold(`FATAL: Gagal mendapatkan address server setelah listen di port ${PORT}.`)); process.exit(1); }
+        const actualPort = address.port;
+        // Tentukan protokol hanya berdasarkan NODE_ENV untuk log
+        const protocol = (process.env.NODE_ENV === 'production' ? 'https' : 'http');
+        const hostnameSetting = global.settings?.publicAddress;
+        const displayHostname = (hostnameSetting && hostnameSetting !== '0.0.0.0') ? hostnameSetting : 'localhost';
+        const portString = (protocol === 'http' && actualPort === 80) || (protocol === 'https' && actualPort === 443) ? '' : `:${actualPort}`;
+        const accessibleUrl = `${protocol}://${displayHostname}${portString}`;
+        const localUrl = `http://localhost:${actualPort}`;
+        const networkIp = '0.0.0.0';
 
-    console.log(chalk.bgGreen.black.bold(' ✓ Server BERHASIL berjalan! '));
-    console.log(chalk.cyan(` -> Lokal:      ${localUrl} `));
-    if (displayHostname !== networkIp && displayHostname === 'localhost') { console.log(chalk.cyan(` -> Jaringan:   http://${networkIp}:${actualPort} `)); }
-    if (displayHostname !== 'localhost') { console.log(chalk.cyan(` -> Publik (?): ${accessibleUrl} `)); }
-    console.log(chalk.magenta(` -> Mendengarkan di port aktual: ${actualPort} `));
-});
-
-server.on('error', (error) => {
-    console.error(chalk.red.bold('!!! FATAL ERROR SAAT MENJALANKAN SERVER !!! 💥'));
-    if (error.syscall !== 'listen') { throw error; }
-    const bind = typeof PORT === 'string' ? 'Pipe ' + PORT : 'Port ' + PORT;
-    switch (error.code) {
-        case 'EACCES': console.error(chalk.red(`${bind} memerlukan hak akses lebih tinggi.`)); process.exit(1); break;
-        case 'EADDRINUSE': console.error(chalk.red(`${bind} (atau port ${error.port}) sudah digunakan.`)); process.exit(1); break;
-        default: console.error(chalk.red(`Error tidak dikenal saat listen:`), error); throw error;
-    }
-});
+        console.log(chalk.bgGreen.black.bold(' ✓ Server BERHASIL berjalan! '));
+        console.log(chalk.cyan(` -> Lokal:      ${localUrl} `));
+        if (displayHostname !== networkIp && displayHostname === 'localhost') { console.log(chalk.cyan(` -> Jaringan:   http://${networkIp}:${actualPort} `)); }
+        if (displayHostname !== 'localhost') { console.log(chalk.cyan(` -> Publik (?): ${accessibleUrl} `)); }
+        console.log(chalk.magenta(` -> Mendengarkan di port aktual: ${actualPort} `));
+    });
+    server.on('error', (error) => {
+        console.error(chalk.red.bold('!!! FATAL ERROR SAAT MENJALANKAN SERVER LOKAL !!! 💥'));
+        if (error.syscall !== 'listen') { throw error; }
+        const bind = typeof PORT === 'string' ? 'Pipe ' + PORT : 'Port ' + PORT;
+        switch (error.code) {
+            case 'EACCES': console.error(chalk.red(`${bind} memerlukan hak akses lebih tinggi.`)); process.exit(1); break;
+            case 'EADDRINUSE': console.error(chalk.red(`${bind} (atau port ${error.port}) sudah digunakan.`)); process.exit(1); break;
+            default: console.error(chalk.red(`Error tidak dikenal saat listen:`), error); throw error;
+        }
+    });
+} else {
+    console.log("LOG: Server siap dijalankan oleh Vercel (atau environment production lainnya).");
+}
 // --- Akhir Start Server ---
 
 
@@ -702,7 +708,7 @@ process.on('uncaughtException', (err, origin) => {
   console.error(chalk.red(`Timestamp: ${new Date().toISOString()}`));
   console.error(chalk.red(`Origin: ${origin}`));
   console.error(err.stack || err);
-  // process.exit(1); // Pertimbangkan exit di production untuk mencegah state rusak
+  // process.exit(1); // Pertimbangkan exit di production
 });
 process.on('unhandledRejection', (reason, promise) => {
   console.error(chalk.red.bold('\n!!! UNHANDLED PROMISE REJECTION !!! 💥'));
@@ -711,5 +717,8 @@ process.on('unhandledRejection', (reason, promise) => {
 });
 // --- Akhir Global Handlers ---
 
-console.log("\nLOG: Konfigurasi server selesai. Menunggu koneksi masuk...");
+console.log("\nLOG: Konfigurasi server selesai.");
+
+// Export 'app' untuk Vercel (atau serverless lainnya)
+module.exports = app;
 // --- AKHIR FILE index.js ---
